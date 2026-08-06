@@ -2,7 +2,27 @@
   "permissions": {
     "allow": [
       "Bash(npm -v)",
-      "Bash(npx --yes create-next-app@latest . --typescript --tailwind --eslint --app --src-dir --import-alias \"@/*\" --use-npm --turbopack --no-git)"
+      "Bash(npx --yes create-next-app@latest . --typescript --tailwind --eslint --app --src-dir --import-alias \"@/*\" --use-npm --turbopack --no-git)",
+      "Bash(npm install *)",
+      "Bash(npx prisma *)",
+      "Bash(curl -s https://ddragon.leagueoflegends.com/api/versions.json)",
+      "Bash(npm run *)",
+      "Bash(mkdir -p /Users/taka/Desktop/lol-note-claude/src/app/champions/\\\\[id\\\\] /Users/taka/Desktop/lol-note-claude/src/app/matchup/\\\\[myId\\\\]/\\\\[lane\\\\]/\\\\[oppId\\\\] /Users/taka/Desktop/lol-note-claude/src/app/summoner /Users/taka/Desktop/lol-note-claude/src/components)",
+      "Bash(npx tsc *)",
+      "Bash(npx next *)",
+      "Bash(sqlite3 prisma/dev.db \"SELECT nameJa, count\\(*\\) c, group_concat\\(id\\) FROM Champion GROUP BY nameJa HAVING c>1;\")",
+      "Bash(sqlite3 prisma/dev.db \".tables\")",
+      "Bash(sqlite3 dev.db \"SELECT nameJa, count\\(*\\) c, group_concat\\(id\\) FROM Champion GROUP BY nameJa HAVING c>1;\")",
+      "Bash(python3 -c ' *)",
+      "Bash(sqlite3 dev.db \"SELECT count\\(*\\) FROM Champion;\")",
+      "Bash(sqlite3 dev.db \"SELECT nameJa, count\\(*\\) c FROM Champion GROUP BY nameJa HAVING c>1;\")",
+      "Bash(sqlite3 dev.db \"SELECT myChampionId, opponentChampionId, lane, memo FROM MatchupMemo;\")",
+      "Bash(gh auth *)",
+      "Bash(gh repo *)",
+      "Bash(brew list *)",
+      "Bash(git remote *)",
+      "Bash(git ls-remote *)",
+      "Bash(brew install *)"
     ]
   }
 }

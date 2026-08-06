@@ -1,0 +1,51 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+enum Lane {
+  TOP
+  JUNGLE
+  MID
+  ADC
+  SUPPORT
+}
+
+model Champion {
+  id        String   @id // Data Dragon champion id, e.g. "Ahri"
+  key       Int      @unique // Data Dragon numeric key, e.g. 103
+  nameEn    String
+  nameJa    String
+  titleJa   String
+  tags      String // JSON-encoded string[] of Data Dragon tags
+  iconUrl   String
+  updatedAt DateTime @updatedAt
+
+  memosAsMine     MatchupMemo[] @relation("MyChampionMemos")
+  memosAsOpponent MatchupMemo[] @relation("OpponentChampionMemos")
+}
+
+model MatchupMemo {
+  id               String   @id @default(cuid())
+  lane             Lane
+  myChampionId     String
+  opponentChampionId String
+  memo             String   @default("")
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  myChampion       Champion @relation("MyChampionMemos", fields: [myChampionId], references: [id])
+  opponentChampion Champion @relation("OpponentChampionMemos", fields: [opponentChampionId], references: [id])
+
+  @@unique([myChampionId, opponentChampionId, lane])
+  @@index([myChampionId])
+}

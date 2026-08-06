@@ -1,36 +1,64 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# LoL Matchup Note
 
-## Getting Started
+自分専用のLeague of Legends マッチアップメモ & 戦績ツール。
 
-First, run the development server:
+- チャンピオンを検索して、自チャンプ×相手チャンプ×レーン単位でマッチアップメモを書ける
+- Riot ID で戦績を検索し、op.gg 風の履歴を表示
+- 履歴の各試合から、その対面カードのマッチアップメモ編集画面へ直接ジャンプできる
+- チャンピオンDBは Riot Data Dragon から取得してローカルDB(SQLite)に保存
+
+## セットアップ
+
+### 1. 依存関係のインストール
+
+```bash
+npm install
+```
+
+### 2. Riot API キーの取得(戦績検索に必要)
+
+1. https://developer.riotgames.com/ にアクセスし、Riotアカウントでサインイン
+2. ダッシュボードに表示される "Development API Key" をコピー
+   - 開発用キーは**24時間で失効**します。切れたら発行し直して `.env` を更新してください
+   - 継続的に使いたい場合は同じダッシュボードから Personal API Key を申請できます
+3. プロジェクト直下の `.env` を開き、`RIOT_API_KEY` に貼り付け
+
+```
+RIOT_API_KEY="RGAPI-xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+```
+
+キー未設定でもチャンプ検索・マッチアップメモ機能は使えます(サモナー検索のみキーが必要)。
+
+### 3. DBのセットアップ & チャンピオンデータのシード
+
+```bash
+npx prisma migrate deploy
+npm run seed
+```
+
+`npm run seed` は Data Dragon から最新のチャンピオン一覧(日本語名込み)を取得してDBに保存します。パッチが更新されたら再実行してください。
+
+### 4. 開発サーバー起動
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+http://localhost:3000 を開く。
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## 使い方
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+- **チャンプ検索**: `/champions` でチャンピオンを検索 → 詳細ページでレーンと相手チャンプを選んで「メモを書く」→ マークダウン的なフリーテキストでメモを保存
+- **サモナー検索**: `/summoner` でリージョンと Riot ID (`ゲーム名#タグ`) を入力して検索。各試合の行から、対面(同レーンの敵チャンプ)とのマッチアップメモへワンクリックで遷移
 
-## Learn More
+## 技術構成
 
-To learn more about Next.js, take a look at the following resources:
+- Next.js (App Router) + TypeScript + Tailwind CSS
+- Prisma + SQLite (`@prisma/adapter-better-sqlite3`)
+- Riot Games API (Account-V1 / Summoner-V4 / Match-V5) をサーバー側(`/api/riot/history`)でラップし、APIキーをクライアントに露出させない構成
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## 今後の拡張候補
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- サモナー検索結果のキャッシュ(DBに保存してレート制限を回避)
+- マッチアップメモへのタグ付け・検索
+- 本番用サーバーへのデプロイ(Vercel + マネージドDBなど)
