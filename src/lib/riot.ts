@@ -160,10 +160,12 @@ export async function getLatestDDragonVersion(): Promise<string> {
 export async function getMatchIdsByPuuid(
   puuid: string,
   platform: Platform,
-  count = 20
+  count = 20,
+  queueId?: number
 ): Promise<string[]> {
   const region = regionalRouteFor(platform);
-  const url = `https://${region}.api.riotgames.com/lol/match/v5/matches/by-puuid/${puuid}/ids?start=0&count=${count}`;
+  const queueParam = queueId ? `&queue=${queueId}` : "";
+  const url = `https://${region}.api.riotgames.com/lol/match/v5/matches/by-puuid/${puuid}/ids?start=0&count=${count}${queueParam}`;
   return riotFetch<string[]>(url);
 }
 

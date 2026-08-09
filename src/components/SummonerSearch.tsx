@@ -17,6 +17,13 @@ import {
   addToSearchHistory,
   type SearchHistoryEntry,
 } from "@/lib/searchHistory";
+import {
+  MAIN_TABS,
+  DROPDOWN_TABS,
+  RANKED_QUEUE_IDS,
+  categoryOf,
+  type QueueCategoryId,
+} from "@/lib/queueCategories";
 import RiotIdInput from "@/components/RiotIdInput";
 import type { HistoryMatch, HistoryParticipant } from "@/app/api/riot/history/route";
 import type { ParticipantBuild } from "@/app/api/riot/timeline/route";
@@ -615,8 +622,20 @@ export default function SummonerSearch({
     {}
   );
   const [buildCache, setBuildCache] = useState<Record<string, BuildState>>({});
+  const [lastSearched, setLastSearched] = useState<InitialSearch | null>(
+    initial ?? null
+  );
+  const [activeCategory, setActiveCategory] = useState<QueueCategoryId>("all");
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [rankedCache, setRankedCache] = useState<
+    Partial<Record<"solo" | "flex", HistoryMatch[] | "loading" | "error">>
+  >({});
 
   async function runSearch(p: Platform, gameName: string, tagLine: string) {
+    setLastSearched({ platform: p, gameName, tagLine });
+    setActiveCategory("all");
+    setDropdownOpen(false);
+    setRankedCache({});
     setLoading(true);
     setError(null);
     setData(null);
@@ -648,6 +667,27 @@ export default function SummonerSearch({
     }
   }
 
+  async function fetchRankedMatches(category: "solo" | "flex") {
+    if (!lastSearched) return;
+    setRankedCache((c) => ({ ...c, [category]: "loading" }));
+    try {
+      const queueId = RANKED_QUEUE_IDS[category];
+      const res = await fetch(
+        `/api/riot/history?platform=${lastSearched.platform}&gameName=${encodeURIComponent(
+          lastSearched.gameName
+        )}&tagLine=${encodeURIComponent(lastSearched.tagLine)}&count=20&queueId=${queueId}`
+      );
+      const json = await res.json();
+      if (!res.ok) {
+        setRankedCache((c) => ({ ...c, [category]: "error" }));
+        return;
+      }
+      setRankedCache((c) => ({ ...c, [category]: json.matches }));
+    } catch {
+      setRankedCache((c) => ({ ...c, [category]: "error" }));
+    }
+  }
+
   useEffect(() => {
     if (!initial) return;
     setPlatform(initial.platform);
@@ -670,6 +710,14 @@ export default function SummonerSearch({
 
   function handleSelectSuggestion(entry: SearchHistoryEntry) {
     router.push(summonerUrl(entry.platform, entry.gameName, entry.tagLine));
+  }
+
+  function handleCategoryClick(id: QueueCategoryId) {
+    setActiveCategory(id);
+    setDropdownOpen(false);
+    if ((id === "solo" || id === "flex") && !rankedCache[id]) {
+      fetchRankedMatches(id);
+    }
   }
 
   async function loadBuild(matchId: string) {
@@ -696,6 +744,24 @@ export default function SummonerSearch({
   const flexEntry = data?.rankedEntries.find(
     (e) => e.queueType === "RANKED_FLEX_SR"
   );
+
+  const isRankedCategory = activeCategory === "solo" || activeCategory === "flex";
+  const rankedState = isRankedCategory
+    ? rankedCache[activeCategory as "solo" | "flex"]
+    : undefined;
+  const categoryLoading = isRankedCategory && rankedState === "loading";
+  const categoryError = isRankedCategory && rankedState === "error";
+  const displayedMatches: HistoryMatch[] | null = !data
+    ? null
+    : activeCategory === "all"
+    ? data.matches
+    : isRankedCategory
+    ? Array.isArray(rankedState)
+      ? rankedState
+      : null
+    : data.matches.filter(
+        (m) => categoryOf(m.queueId, m.gameMode) === activeCategory
+      );
 
   const showHero = hero && !data;
 
@@ -740,8 +806,8 @@ export default function SummonerSearch({
               onTagLineChange={setTagLine}
               onSelectSuggestion={handleSelectSuggestion}
               platform={platform}
-              gameNamePlaceholder="ゲーム名 (例: さば)"
-              tagLinePlaceholder="タグ (例: khan3)"
+              gameNamePlaceholder="サモナーネーム"
+              tagLinePlaceholder="タグ"
               gameNameClassName="min-w-0 w-full bg-transparent px-4 py-2.5 text-sm text-white placeholder-neutral-500 focus:outline-none"
               tagLineClassName="w-24 shrink-0 bg-transparent px-2 py-2.5 text-sm text-white placeholder-neutral-500 focus:outline-none"
             />
@@ -791,7 +857,7 @@ export default function SummonerSearch({
             </div>
             <div className="max-w-sm flex-1">
               <label className="mb-1 block text-xs text-neutral-400">
-                ゲーム名 / タグ
+                サモナーネーム / タグ
               </label>
               <RiotIdInput
                 gameName={gameName}
@@ -800,8 +866,8 @@ export default function SummonerSearch({
                 onTagLineChange={setTagLine}
                 onSelectSuggestion={handleSelectSuggestion}
                 platform={platform}
-                gameNamePlaceholder="さば"
-                tagLinePlaceholder="khan3"
+                gameNamePlaceholder="サモナーネーム"
+                tagLinePlaceholder="タグ"
                 gameNameClassName="w-full rounded-lg border border-neutral-700 bg-neutral-900 px-3 py-2 text-sm text-white placeholder-neutral-500 focus:border-sky-500 focus:outline-none"
                 tagLineClassName="w-20 shrink-0 rounded-lg border border-neutral-700 bg-neutral-900 px-2 py-2 text-sm text-white placeholder-neutral-500 focus:border-sky-500 focus:outline-none"
               />
@@ -821,6 +887,70 @@ export default function SummonerSearch({
             </div>
           )}
         </>
+      )}
+
+      {lastSearched && (
+        <div className="mb-4 flex flex-wrap items-center gap-2 border-b border-neutral-800">
+          {MAIN_TABS.map((tab) => (
+            <button
+              key={tab.id}
+              type="button"
+              disabled={loading}
+              onClick={() => handleCategoryClick(tab.id)}
+              className={`border-b-2 px-3 py-2 text-sm font-medium whitespace-nowrap transition disabled:opacity-50 ${
+                activeCategory === tab.id
+                  ? "border-sky-500 text-white"
+                  : "border-transparent text-neutral-400 hover:text-white"
+              }`}
+            >
+              {tab.label}
+            </button>
+          ))}
+          <div className="relative">
+            <button
+              type="button"
+              disabled={loading}
+              onClick={() => setDropdownOpen((o) => !o)}
+              className={`flex items-center gap-1 border-b-2 px-3 py-2 text-sm font-medium whitespace-nowrap transition disabled:opacity-50 ${
+                DROPDOWN_TABS.some((t) => t.id === activeCategory)
+                  ? "border-sky-500 text-white"
+                  : "border-transparent text-neutral-400 hover:text-white"
+              }`}
+            >
+              {DROPDOWN_TABS.find((t) => t.id === activeCategory)?.label ??
+                "キュータイプ"}
+              <span className="text-xs">{dropdownOpen ? "▲" : "▼"}</span>
+            </button>
+            {dropdownOpen && (
+              <ul className="absolute left-0 top-full z-10 mt-1 min-w-[10rem] overflow-hidden rounded-lg border border-neutral-700 bg-neutral-900 shadow-xl">
+                {DROPDOWN_TABS.map((tab) => (
+                  <li key={tab.id}>
+                    <button
+                      type="button"
+                      onClick={() => handleCategoryClick(tab.id)}
+                      className={`block w-full px-4 py-2 text-left text-sm hover:bg-neutral-800 ${
+                        activeCategory === tab.id
+                          ? "text-sky-400"
+                          : "text-neutral-200"
+                      }`}
+                    >
+                      {tab.label}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        </div>
+      )}
+
+      {(loading || categoryLoading) && (
+        <p className="mb-4 text-sm text-neutral-500">読み込み中...</p>
+      )}
+      {categoryError && (
+        <p className="mb-4 text-sm text-red-400">
+          この条件の戦績取得に失敗しました
+        </p>
       )}
 
       {data && (
@@ -848,7 +978,7 @@ export default function SummonerSearch({
             )}
           </div>
 
-          {(() => {
+          {!categoryLoading && !categoryError && displayedMatches && (() => {
             const currentPlatform = searchedPlatform ?? platform;
             const fromParam = encodeURIComponent(
               `/summoners/${currentPlatform}/${data.account.gameName}-${data.account.tagLine}`
@@ -856,7 +986,7 @@ export default function SummonerSearch({
             return (
           <>
           <div className="space-y-2">
-            {data.matches.map((m) => {
+            {displayedMatches.map((m) => {
               const myChamp = champIcon(championMap, m.championName);
               const oppChamp = m.opponent
                 ? champIcon(championMap, m.opponent.championName)
@@ -988,8 +1118,8 @@ export default function SummonerSearch({
             })}
           </div>
 
-          {data.matches.length === 0 && (
-            <p className="text-neutral-500">直近の試合が見つかりませんでした</p>
+          {displayedMatches.length === 0 && (
+            <p className="text-neutral-500">この条件の試合が見つかりませんでした</p>
           )}
           </>
             );

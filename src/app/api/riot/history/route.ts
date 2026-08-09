@@ -67,6 +67,8 @@ export async function GET(req: NextRequest) {
   const gameName = searchParams.get("gameName");
   const tagLine = searchParams.get("tagLine");
   const count = Number(searchParams.get("count") ?? "20");
+  const queueIdParam = searchParams.get("queueId");
+  const queueId = queueIdParam ? Number(queueIdParam) : undefined;
 
   if (!platform || !gameName || !tagLine) {
     return NextResponse.json(
@@ -79,7 +81,7 @@ export async function GET(req: NextRequest) {
     const account = await getAccountByRiotId(gameName, tagLine, platform);
     const [summoner, matchIds, ddragonVersion] = await Promise.all([
       getSummonerByPuuid(account.puuid, platform).catch(() => null),
-      getMatchIdsByPuuid(account.puuid, platform, count),
+      getMatchIdsByPuuid(account.puuid, platform, count, queueId),
       getLatestDDragonVersion(),
     ]);
 
