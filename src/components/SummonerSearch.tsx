@@ -978,6 +978,37 @@ export default function SummonerSearch({
               </div>
             </div>
           )}
+
+          <div className="mt-16 grid w-full max-w-3xl grid-cols-1 gap-4 px-4 text-left sm:grid-cols-3">
+            {[
+              {
+                title: "サモナーを検索",
+                desc: "リージョンとサモナー名#タグを入力して検索します。",
+              },
+              {
+                title: "試合をチェック",
+                desc: "戦績一覧から気になる試合をクリックすると詳細が見られます。",
+              },
+              {
+                title: "マッチアップを記録",
+                desc: "「メモを書く」から対面チャンピオンへの立ち回りを書き残せます。",
+              },
+            ].map((step, i) => (
+              <div
+                key={step.title}
+                className="rounded-xl border border-neutral-800 bg-neutral-900 p-4"
+              >
+                <div className="mb-2 flex h-7 w-7 items-center justify-center rounded-full bg-sky-600 text-sm font-bold text-white">
+                  {i + 1}
+                </div>
+                <p className="font-semibold text-white">{step.title}</p>
+                <p className="mt-1 text-sm text-neutral-400">{step.desc}</p>
+              </div>
+            ))}
+          </div>
+          <p className="mt-3 px-4 text-xs text-neutral-500">
+            ※ マッチアップメモは「チャンプ検索」のチャンピオンページからも追加できます。
+          </p>
         </div>
       ) : (
         <>
