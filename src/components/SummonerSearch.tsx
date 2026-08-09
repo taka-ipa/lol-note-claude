@@ -13,6 +13,11 @@ import {
   queueLabel,
 } from "@/lib/rank";
 import { STAT_SHARD_LABELS } from "@/lib/runes";
+import {
+  addToSearchHistory,
+  type SearchHistoryEntry,
+} from "@/lib/searchHistory";
+import RiotIdInput from "@/components/RiotIdInput";
 import type { HistoryMatch, HistoryParticipant } from "@/app/api/riot/history/route";
 import type { ParticipantBuild } from "@/app/api/riot/timeline/route";
 
@@ -632,6 +637,11 @@ export default function SummonerSearch({
       }
       setData(json);
       setSearchedPlatform(p);
+      addToSearchHistory({
+        platform: p,
+        gameName: json.account.gameName,
+        tagLine: json.account.tagLine,
+      });
     } catch {
       setError("通信エラーが発生しました");
     } finally {
@@ -651,11 +661,15 @@ export default function SummonerSearch({
     e.preventDefault();
     const parts = riotId.split("#");
     if (parts.length !== 2 || !parts[0] || !parts[1]) {
-      setError("「ゲーム名#タグ」の形式で入力してください (例: さば#khan3)");
+      setError("「ゲーム名#タグ」の形式で入力してください");
       return;
     }
     const [gameName, tagLine] = parts;
     router.push(summonerUrl(platform, gameName, tagLine));
+  }
+
+  function handleSelectSuggestion(entry: SearchHistoryEntry) {
+    router.push(summonerUrl(entry.platform, entry.gameName, entry.tagLine));
   }
 
   async function loadBuild(matchId: string) {
@@ -719,12 +733,13 @@ export default function SummonerSearch({
               ))}
             </select>
             <span className="h-6 w-px shrink-0 bg-neutral-700" />
-            <input
-              type="text"
+            <RiotIdInput
               value={riotId}
-              onChange={(e) => setRiotId(e.target.value)}
-              placeholder="ゲーム名 + #タグ (例: さば#khan3)"
-              className="min-w-0 flex-1 bg-transparent px-4 py-2.5 text-sm text-white placeholder-neutral-500 focus:outline-none"
+              onChange={setRiotId}
+              onSelectSuggestion={handleSelectSuggestion}
+              platform={platform}
+              placeholder="ゲーム名 + #タグ"
+              className="min-w-0 w-full bg-transparent px-4 py-2.5 text-sm text-white placeholder-neutral-500 focus:outline-none"
             />
             <button
               type="submit"
@@ -770,16 +785,17 @@ export default function SummonerSearch({
                 ))}
               </select>
             </div>
-            <div className="flex-1">
+            <div className="max-w-sm flex-1">
               <label className="mb-1 block text-xs text-neutral-400">
                 Riot ID (ゲーム名#タグ)
               </label>
-              <input
-                type="text"
+              <RiotIdInput
                 value={riotId}
-                onChange={(e) => setRiotId(e.target.value)}
-                placeholder="さば#khan3"
-                className="w-full max-w-sm rounded-lg border border-neutral-700 bg-neutral-900 px-3 py-2 text-sm text-white placeholder-neutral-500 focus:border-sky-500 focus:outline-none"
+                onChange={setRiotId}
+                onSelectSuggestion={handleSelectSuggestion}
+                platform={platform}
+                placeholder="ゲーム名 + #タグ"
+                className="w-full rounded-lg border border-neutral-700 bg-neutral-900 px-3 py-2 text-sm text-white placeholder-neutral-500 focus:border-sky-500 focus:outline-none"
               />
             </div>
             <button
