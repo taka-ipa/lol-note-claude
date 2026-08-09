@@ -1,13 +1,44 @@
 import { NextRequest, NextResponse } from "next/server";
 import {
   getAccountByRiotId,
+  getLatestDDragonVersion,
+  getLeagueEntriesByPuuid,
   getMatchById,
   getMatchIdsByPuuid,
+  getRuneIconMaps,
   getSummonerByPuuid,
+  getSummonerSpellIconMap,
   normalizeLane,
   RiotApiError,
+  type LeagueEntry,
   type Platform,
 } from "@/lib/riot";
+
+export type HistoryParticipant = {
+  puuid: string;
+  participantId: number;
+  riotIdGameName: string;
+  riotIdTagline: string;
+  teamId: number;
+  win: boolean;
+  championId: number;
+  championName: string;
+  lane: "TOP" | "JUNGLE" | "MID" | "ADC" | "SUPPORT" | null;
+  kills: number;
+  deaths: number;
+  assists: number;
+  cs: number;
+  goldEarned: number;
+  totalDamageDealtToChampions: number;
+  summoner1Id: number;
+  summoner2Id: number;
+  primaryStyle: number | null;
+  primarySelections: number[];
+  subStyle: number | null;
+  subSelections: number[];
+  statPerks: { offense: number; flex: number; defense: number } | null;
+  items: number[];
+};
 
 export type HistoryMatch = {
   matchId: string;
@@ -25,7 +56,10 @@ export type HistoryMatch = {
   cs: number;
   goldEarned: number;
   opponent: { championId: number; championName: string } | null;
+  participants: HistoryParticipant[];
 };
+
+const LANE_ORDER = ["TOP", "JUNGLE", "MID", "ADC", "SUPPORT"];
 
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
@@ -43,9 +77,18 @@ export async function GET(req: NextRequest) {
 
   try {
     const account = await getAccountByRiotId(gameName, tagLine, platform);
-    const [summoner, matchIds] = await Promise.all([
+    const [summoner, matchIds, ddragonVersion] = await Promise.all([
       getSummonerByPuuid(account.puuid, platform).catch(() => null),
       getMatchIdsByPuuid(account.puuid, platform, count),
+      getLatestDDragonVersion(),
+    ]);
+
+    const [rankedEntries, spellIcons, runeIcons] = await Promise.all([
+      getLeagueEntriesByPuuid(account.puuid, platform).catch(
+        (): LeagueEntry[] => []
+      ),
+      getSummonerSpellIconMap(ddragonVersion),
+      getRuneIconMaps(ddragonVersion),
     ]);
 
     const matches = await Promise.all(
@@ -66,6 +109,56 @@ export async function GET(req: NextRequest) {
                 normalizeLane(p.teamPosition) === lane
             )
           : undefined;
+
+        const participants: HistoryParticipant[] = [...match.info.participants]
+          .sort((a, b) => {
+            if (a.teamId !== b.teamId) return a.teamId - b.teamId;
+            return (
+              LANE_ORDER.indexOf(a.teamPosition) -
+              LANE_ORDER.indexOf(b.teamPosition)
+            );
+          })
+          .map((p) => {
+            const primary = p.perks?.styles?.find(
+              (s) => s.description === "primaryStyle"
+            );
+            const sub = p.perks?.styles?.find(
+              (s) => s.description === "subStyle"
+            );
+            return {
+              puuid: p.puuid,
+              participantId: p.participantId,
+              riotIdGameName: p.riotIdGameName || p.summonerName || "?",
+              riotIdTagline: p.riotIdTagline || "",
+              teamId: p.teamId,
+              win: p.win,
+              championId: p.championId,
+              championName: p.championName,
+              lane: normalizeLane(p.teamPosition),
+              kills: p.kills,
+              deaths: p.deaths,
+              assists: p.assists,
+              cs: p.totalMinionsKilled + p.neutralMinionsKilled,
+              goldEarned: p.goldEarned,
+              totalDamageDealtToChampions: p.totalDamageDealtToChampions,
+              summoner1Id: p.summoner1Id,
+              summoner2Id: p.summoner2Id,
+              primaryStyle: primary?.style ?? null,
+              primarySelections: primary?.selections?.map((s) => s.perk) ?? [],
+              subStyle: sub?.style ?? null,
+              subSelections: sub?.selections?.map((s) => s.perk) ?? [],
+              statPerks: p.perks?.statPerks ?? null,
+              items: [
+                p.item0,
+                p.item1,
+                p.item2,
+                p.item3,
+                p.item4,
+                p.item5,
+                p.item6,
+              ],
+            };
+          });
 
         return {
           matchId: match.metadata.matchId,
@@ -88,6 +181,7 @@ export async function GET(req: NextRequest) {
                 championName: opponentParticipant.championName,
               }
             : null,
+          participants,
         };
       })
     );
@@ -95,6 +189,11 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({
       account,
       summoner,
+      rankedEntries,
+      ddragonVersion,
+      spellIcons,
+      perkIcons: runeIcons.perkIcons,
+      styleIcons: runeIcons.styleIcons,
       matches: matches.filter((m): m is HistoryMatch => m !== null),
     });
   } catch (err) {

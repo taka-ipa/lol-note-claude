@@ -125,6 +125,38 @@ export async function getSummonerByPuuid(
   return riotFetch<SummonerDto>(url);
 }
 
+export type LeagueEntry = {
+  queueType: string;
+  tier: string;
+  rank: string;
+  leaguePoints: number;
+  wins: number;
+  losses: number;
+};
+
+export async function getLeagueEntriesByPuuid(
+  puuid: string,
+  platform: Platform
+): Promise<LeagueEntry[]> {
+  const url = `https://${platform}.api.riotgames.com/lol/league/v4/entries/by-puuid/${puuid}`;
+  return riotFetch<LeagueEntry[]>(url);
+}
+
+let cachedDDragonVersion: { version: string; fetchedAt: number } | null = null;
+
+export async function getLatestDDragonVersion(): Promise<string> {
+  const ONE_HOUR = 60 * 60 * 1000;
+  if (cachedDDragonVersion && Date.now() - cachedDDragonVersion.fetchedAt < ONE_HOUR) {
+    return cachedDDragonVersion.version;
+  }
+  const versions: string[] = await fetch(
+    "https://ddragon.leagueoflegends.com/api/versions.json"
+  ).then((r) => r.json());
+  const version = versions[0];
+  cachedDDragonVersion = { version, fetchedAt: Date.now() };
+  return version;
+}
+
 export async function getMatchIdsByPuuid(
   puuid: string,
   platform: Platform,
@@ -137,6 +169,7 @@ export async function getMatchIdsByPuuid(
 
 export type MatchParticipant = {
   puuid: string;
+  participantId: number;
   championName: string;
   championId: number;
   teamId: number;
@@ -148,9 +181,27 @@ export type MatchParticipant = {
   totalMinionsKilled: number;
   neutralMinionsKilled: number;
   goldEarned: number;
+  totalDamageDealtToChampions: number;
+  summoner1Id: number;
+  summoner2Id: number;
+  item0: number;
+  item1: number;
+  item2: number;
+  item3: number;
+  item4: number;
+  item5: number;
+  item6: number;
   summonerName: string;
   riotIdGameName?: string;
   riotIdTagline?: string;
+  perks?: {
+    statPerks: { offense: number; flex: number; defense: number };
+    styles: {
+      description: string;
+      style: number;
+      selections: { perk: number }[];
+    }[];
+  };
 };
 
 export type MatchDto = {
@@ -171,6 +222,90 @@ export async function getMatchById(
   const region = regionalRouteFor(platform);
   const url = `https://${region}.api.riotgames.com/lol/match/v5/matches/${matchId}`;
   return riotFetch<MatchDto>(url);
+}
+
+export type TimelineEvent = {
+  type: string;
+  timestamp: number;
+  participantId?: number;
+  itemId?: number;
+  beforeId?: number;
+  afterId?: number;
+};
+
+export type MatchTimelineDto = {
+  metadata: { participants: string[] };
+  info: {
+    frames: { events: TimelineEvent[] }[];
+  };
+};
+
+export async function getMatchTimeline(
+  matchId: string,
+  platform: Platform
+): Promise<MatchTimelineDto> {
+  const region = regionalRouteFor(platform);
+  const url = `https://${region}.api.riotgames.com/lol/match/v5/matches/${matchId}/timeline`;
+  return riotFetch<MatchTimelineDto>(url);
+}
+
+type DDragonSummonerSpell = { key: string; image: { full: string } };
+
+let cachedSpellIconMap: { version: string; map: Record<number, string> } | null =
+  null;
+
+export async function getSummonerSpellIconMap(
+  version: string
+): Promise<Record<number, string>> {
+  if (cachedSpellIconMap && cachedSpellIconMap.version === version) {
+    return cachedSpellIconMap.map;
+  }
+  const data: { data: Record<string, DDragonSummonerSpell> } = await fetch(
+    `https://ddragon.leagueoflegends.com/cdn/${version}/data/en_US/summoner.json`
+  ).then((r) => r.json());
+  const map: Record<number, string> = {};
+  for (const spell of Object.values(data.data)) {
+    map[Number(spell.key)] =
+      `https://ddragon.leagueoflegends.com/cdn/${version}/img/spell/${spell.image.full}`;
+  }
+  cachedSpellIconMap = { version, map };
+  return map;
+}
+
+type DDragonRuneStyle = {
+  id: number;
+  icon: string;
+  slots: { runes: { id: number; icon: string }[] }[];
+};
+
+let cachedRuneIconMaps: {
+  version: string;
+  perkIcons: Record<number, string>;
+  styleIcons: Record<number, string>;
+} | null = null;
+
+export async function getRuneIconMaps(version: string): Promise<{
+  perkIcons: Record<number, string>;
+  styleIcons: Record<number, string>;
+}> {
+  if (cachedRuneIconMaps && cachedRuneIconMaps.version === version) {
+    return cachedRuneIconMaps;
+  }
+  const styles: DDragonRuneStyle[] = await fetch(
+    `https://ddragon.leagueoflegends.com/cdn/${version}/data/en_US/runesReforged.json`
+  ).then((r) => r.json());
+  const perkIcons: Record<number, string> = {};
+  const styleIcons: Record<number, string> = {};
+  for (const style of styles) {
+    styleIcons[style.id] = `https://ddragon.leagueoflegends.com/cdn/img/${style.icon}`;
+    for (const slot of style.slots) {
+      for (const rune of slot.runes) {
+        perkIcons[rune.id] = `https://ddragon.leagueoflegends.com/cdn/img/${rune.icon}`;
+      }
+    }
+  }
+  cachedRuneIconMaps = { version, perkIcons, styleIcons };
+  return cachedRuneIconMaps;
 }
 
 const LANE_MAP: Record<string, "TOP" | "JUNGLE" | "MID" | "ADC" | "SUPPORT"> = {
