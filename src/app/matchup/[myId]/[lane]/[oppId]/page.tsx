@@ -60,24 +60,26 @@ export default async function MatchupPage({
         </Link>
       </div>
 
-      <div className="mb-6 flex items-center gap-4">
-        <Image
-          src={myChampion.iconUrl}
-          alt={myChampion.nameJa}
-          width={64}
-          height={64}
-          unoptimized
-          className="rounded-lg border border-neutral-700"
-        />
-        <span className="text-xl text-neutral-500">vs</span>
-        <Image
-          src={opponentChampion.iconUrl}
-          alt={opponentChampion.nameJa}
-          width={64}
-          height={64}
-          unoptimized
-          className="rounded-lg border border-neutral-700"
-        />
+      <div className="mb-6 flex flex-wrap items-center gap-4">
+        <div className="flex shrink-0 items-center gap-4">
+          <Image
+            src={myChampion.iconUrl}
+            alt={myChampion.nameJa}
+            width={64}
+            height={64}
+            unoptimized
+            className="rounded-lg border border-neutral-700"
+          />
+          <span className="text-xl text-neutral-500">vs</span>
+          <Image
+            src={opponentChampion.iconUrl}
+            alt={opponentChampion.nameJa}
+            width={64}
+            height={64}
+            unoptimized
+            className="rounded-lg border border-neutral-700"
+          />
+        </div>
         <div>
           <h1 className="text-xl font-bold text-white">
             {myChampion.nameJa} vs {opponentChampion.nameJa}

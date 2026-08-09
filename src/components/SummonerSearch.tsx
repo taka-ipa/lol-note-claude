@@ -440,7 +440,7 @@ function RunePageSection({
     : [];
 
   return (
-    <div className="flex flex-wrap items-start gap-6">
+    <div className="flex flex-wrap items-start gap-4 sm:gap-6">
       {primaryTree && (
         <div className="flex flex-col items-center gap-3">
           <span className="text-[10px] font-medium text-neutral-500">メイン</span>
@@ -467,7 +467,7 @@ function RunePageSection({
         </div>
       )}
       {subTree && (
-        <div className="flex flex-col items-center gap-3 border-l border-neutral-700 pl-6 pt-1">
+        <div className="flex flex-col items-center gap-3 border-t border-neutral-700 pt-3 sm:border-l sm:border-t-0 sm:pl-6 sm:pt-1">
           <span className="text-[10px] font-medium text-neutral-500">サブ</span>
           <Image
             src={subTree.icon}
@@ -492,7 +492,7 @@ function RunePageSection({
         </div>
       )}
       {shardIds.length > 0 && (
-        <div className="flex flex-col items-center gap-3 border-l border-neutral-700 pl-6 pt-1">
+        <div className="flex flex-col items-center gap-3 border-t border-neutral-700 pt-3 sm:border-l sm:border-t-0 sm:pl-6 sm:pt-1">
           <span className="text-[10px] font-medium text-neutral-500">
             ステータス
           </span>
@@ -680,42 +680,44 @@ function MatchDetail({
       </div>
 
       {tab === "overview" && (
-        <div className="space-y-3">
-          <ParticipantHeaderRow />
-          <div>
-            <p className="mb-1 text-xs font-semibold text-sky-400">
-              ブルーチーム
-            </p>
-            <div className="space-y-0.5">
-              {blueTeam.map((p) => (
-                <ParticipantRow
-                  key={p.puuid}
-                  p={p}
-                  championMap={championMap}
-                  version={version}
-                  icons={icons}
-                  isMe={p.puuid === myPuuid}
-                  maxDamage={maxDamage}
-                />
-              ))}
+        <div className="overflow-x-auto">
+          <div className="min-w-[640px] space-y-3">
+            <ParticipantHeaderRow />
+            <div>
+              <p className="mb-1 text-xs font-semibold text-sky-400">
+                ブルーチーム
+              </p>
+              <div className="space-y-0.5">
+                {blueTeam.map((p) => (
+                  <ParticipantRow
+                    key={p.puuid}
+                    p={p}
+                    championMap={championMap}
+                    version={version}
+                    icons={icons}
+                    isMe={p.puuid === myPuuid}
+                    maxDamage={maxDamage}
+                  />
+                ))}
+              </div>
             </div>
-          </div>
-          <div>
-            <p className="mb-1 text-xs font-semibold text-red-400">
-              レッドチーム
-            </p>
-            <div className="space-y-0.5">
-              {redTeam.map((p) => (
-                <ParticipantRow
-                  key={p.puuid}
-                  p={p}
-                  championMap={championMap}
-                  version={version}
-                  icons={icons}
-                  isMe={p.puuid === myPuuid}
-                  maxDamage={maxDamage}
-                />
-              ))}
+            <div>
+              <p className="mb-1 text-xs font-semibold text-red-400">
+                レッドチーム
+              </p>
+              <div className="space-y-0.5">
+                {redTeam.map((p) => (
+                  <ParticipantRow
+                    key={p.puuid}
+                    p={p}
+                    championMap={championMap}
+                    version={version}
+                    icons={icons}
+                    isMe={p.puuid === myPuuid}
+                    maxDamage={maxDamage}
+                  />
+                ))}
+              </div>
             </div>
           </div>
         </div>
@@ -910,25 +912,25 @@ export default function SummonerSearch({
   return (
     <div>
       {showHero ? (
-        <div className="flex flex-col items-center py-16 text-center">
-          <h1 className="text-4xl font-extrabold tracking-tight text-white sm:text-5xl">
+        <div className="flex flex-col items-center py-10 text-center sm:py-16">
+          <h1 className="text-3xl font-extrabold tracking-tight text-white sm:text-5xl">
             LoL Matchup{" "}
             <span className="bg-gradient-to-r from-sky-400 to-emerald-400 bg-clip-text text-transparent">
               Note
             </span>
           </h1>
-          <p className="mt-3 text-neutral-400">
+          <p className="mt-3 px-4 text-neutral-400">
             サモナー名を検索して、戦績からマッチアップメモへ。
           </p>
 
           <form
             onSubmit={handleSearch}
-            className="mt-8 flex w-full max-w-2xl items-center gap-0 rounded-full border border-neutral-700 bg-neutral-900 p-1.5 shadow-lg"
+            className="mt-8 flex w-full max-w-2xl flex-col gap-2 px-4 sm:flex-row sm:items-center sm:gap-0 sm:rounded-full sm:border sm:border-neutral-700 sm:bg-neutral-900 sm:p-1.5 sm:shadow-lg"
           >
             <select
               value={platform}
               onChange={(e) => setPlatform(e.target.value as Platform)}
-              className="shrink-0 rounded-full bg-transparent px-4 py-2.5 text-sm text-neutral-300 focus:outline-none"
+              className="w-full rounded-xl border border-neutral-700 bg-neutral-900 px-4 py-2.5 text-sm text-neutral-300 focus:outline-none sm:w-auto sm:shrink-0 sm:rounded-full sm:border-0 sm:bg-transparent"
             >
               {PLATFORMS.map((p) => (
                 <option
@@ -940,25 +942,27 @@ export default function SummonerSearch({
                 </option>
               ))}
             </select>
-            <span className="h-6 w-px shrink-0 bg-neutral-700" />
-            <RiotIdInput
-              gameName={gameName}
-              tagLine={tagLine}
-              onGameNameChange={setGameName}
-              onTagLineChange={setTagLine}
-              onSelectSuggestion={handleSelectSuggestion}
-              platform={platform}
-              placeholder="サモナーネーム#タグ"
-              className="min-w-0 w-full bg-transparent px-4 py-2.5 text-sm text-white placeholder-neutral-500 focus:outline-none"
-            />
-            <button
-              type="submit"
-              disabled={loading}
-              aria-label="検索"
-              className="flex shrink-0 items-center justify-center rounded-full bg-sky-600 px-6 py-2.5 text-sm font-medium text-white hover:bg-sky-500 disabled:opacity-50"
-            >
-              {loading ? "検索中..." : "検索"}
-            </button>
+            <span className="hidden h-6 w-px shrink-0 bg-neutral-700 sm:block" />
+            <div className="flex items-center gap-2 rounded-xl border border-neutral-700 bg-neutral-900 p-1.5 sm:contents">
+              <RiotIdInput
+                gameName={gameName}
+                tagLine={tagLine}
+                onGameNameChange={setGameName}
+                onTagLineChange={setTagLine}
+                onSelectSuggestion={handleSelectSuggestion}
+                platform={platform}
+                placeholder="サモナーネーム#タグ"
+                className="min-w-0 w-full bg-transparent px-3 py-2 text-sm text-white placeholder-neutral-500 focus:outline-none sm:px-4 sm:py-2.5"
+              />
+              <button
+                type="submit"
+                disabled={loading}
+                aria-label="検索"
+                className="flex shrink-0 items-center justify-center rounded-lg bg-sky-600 px-5 py-2 text-sm font-medium text-white hover:bg-sky-500 disabled:opacity-50 sm:rounded-full sm:px-6 sm:py-2.5"
+              >
+                {loading ? "検索中..." : "検索"}
+              </button>
+            </div>
           </form>
 
           <div className="mt-4 flex gap-3 text-sm">
@@ -968,8 +972,10 @@ export default function SummonerSearch({
           </div>
 
           {error && (
-            <div className="mt-6 w-full max-w-2xl rounded-lg border border-red-800 bg-red-950/50 p-3 text-sm text-red-300">
-              {error}
+            <div className="mt-6 w-full max-w-2xl px-4 text-sm text-red-300">
+              <div className="rounded-lg border border-red-800 bg-red-950/50 p-3">
+                {error}
+              </div>
             </div>
           )}
         </div>
@@ -979,14 +985,14 @@ export default function SummonerSearch({
             onSubmit={handleSearch}
             className="mb-6 flex flex-wrap items-end gap-3"
           >
-            <div>
+            <div className="w-full sm:w-auto">
               <label className="mb-1 block text-xs text-neutral-400">
                 リージョン
               </label>
               <select
                 value={platform}
                 onChange={(e) => setPlatform(e.target.value as Platform)}
-                className="rounded-lg border border-neutral-700 bg-neutral-900 px-3 py-2 text-sm text-white focus:border-sky-500 focus:outline-none"
+                className="w-full rounded-lg border border-neutral-700 bg-neutral-900 px-3 py-2 text-sm text-white focus:border-sky-500 focus:outline-none sm:w-auto"
               >
                 {PLATFORMS.map((p) => (
                   <option key={p.value} value={p.value}>
@@ -995,7 +1001,7 @@ export default function SummonerSearch({
                 ))}
               </select>
             </div>
-            <div className="max-w-sm flex-1">
+            <div className="w-full flex-1 sm:max-w-sm">
               <label className="mb-1 block text-xs text-neutral-400">
                 サモナーネーム / タグ
               </label>
@@ -1161,86 +1167,94 @@ export default function SummonerSearch({
                     onClick={() =>
                       setExpandedMatchId(isExpanded ? null : m.matchId)
                     }
-                    className="flex w-full items-center gap-4 p-3 text-left hover:bg-white/5"
+                    className="flex w-full flex-col gap-2 p-3 text-left hover:bg-white/5 sm:flex-row sm:items-center sm:gap-4"
                   >
-                    <div className="w-32 shrink-0">
-                      <p
-                        className={`text-sm font-semibold ${
-                          m.win ? "text-sky-300" : "text-red-300"
-                        }`}
-                      >
-                        {m.win ? "勝利" : "敗北"}
-                      </p>
-                      <p className="text-xs text-neutral-500">
-                        {queueLabel(m.queueId, m.gameMode)}
-                      </p>
-                      <p className="text-xs text-neutral-500">
-                        {formatWhen(m.gameCreation)}
-                      </p>
-                    </div>
-
-                    <div className="flex items-center gap-2">
-                      {myChamp ? (
-                        <Image
-                          src={myChamp.iconUrl}
-                          alt={myChamp.nameJa}
-                          width={40}
-                          height={40}
-                          unoptimized
-                          className="rounded-md border border-neutral-700"
-                        />
-                      ) : (
-                        <div className="h-10 w-10 rounded-md bg-neutral-800" />
-                      )}
-                      <div>
-                        <p className="text-sm text-white">
-                          {myChamp?.nameJa ?? m.championName}
+                    <div className="flex items-center gap-3 sm:contents">
+                      <div className="w-14 shrink-0 sm:w-32">
+                        <p
+                          className={`text-sm font-semibold ${
+                            m.win ? "text-sky-300" : "text-red-300"
+                          }`}
+                        >
+                          {m.win ? "勝利" : "敗北"}
+                        </p>
+                        <p className="hidden text-xs text-neutral-500 sm:block">
+                          {queueLabel(m.queueId, m.gameMode)}
                         </p>
                         <p className="text-xs text-neutral-500">
-                          {m.lane ? LANE_LABELS[m.lane as Lane] : "-"}
+                          {formatWhen(m.gameCreation)}
                         </p>
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        {myChamp ? (
+                          <Image
+                            src={myChamp.iconUrl}
+                            alt={myChamp.nameJa}
+                            width={40}
+                            height={40}
+                            unoptimized
+                            className="rounded-md border border-neutral-700"
+                          />
+                        ) : (
+                          <div className="h-10 w-10 rounded-md bg-neutral-800" />
+                        )}
+                        <div>
+                          <p className="text-sm text-white">
+                            {myChamp?.nameJa ?? m.championName}
+                          </p>
+                          <p className="text-xs text-neutral-500">
+                            {m.lane ? LANE_LABELS[m.lane as Lane] : "-"}
+                          </p>
+                        </div>
                       </div>
                     </div>
 
-                    <div className="w-28 shrink-0 text-sm text-neutral-300">
-                      <p>
-                        {m.kills} / {m.deaths} / {m.assists}
-                      </p>
-                      <p className="text-xs text-neutral-500">KDA {kda}</p>
+                    <div className="flex items-center gap-4 sm:contents">
+                      <div className="sm:w-28 sm:shrink-0 text-sm text-neutral-300">
+                        <p>
+                          {m.kills} / {m.deaths} / {m.assists}
+                        </p>
+                        <p className="text-xs text-neutral-500">KDA {kda}</p>
+                      </div>
+
+                      <div className="sm:w-24 sm:shrink-0 text-xs text-neutral-500">
+                        <p>CS {m.cs}</p>
+                        <p>{formatDuration(m.gameDuration)}</p>
+                      </div>
                     </div>
 
-                    <div className="w-24 shrink-0 text-xs text-neutral-500">
-                      <p>CS {m.cs}</p>
-                      <p>{formatDuration(m.gameDuration)}</p>
-                    </div>
-
-                    <div className="flex flex-1 items-center justify-end gap-3">
+                    <div className="flex min-w-0 flex-1 items-center justify-between gap-3 sm:justify-end">
                       {oppChamp && (
-                        <div className="flex items-center gap-2 text-neutral-400">
-                          <span className="text-xs">vs</span>
+                        <div className="flex min-w-0 items-center gap-2 text-neutral-400">
+                          <span className="shrink-0 text-xs">vs</span>
                           <Image
                             src={oppChamp.iconUrl}
                             alt={oppChamp.nameJa}
                             width={32}
                             height={32}
                             unoptimized
-                            className="rounded-md border border-neutral-700"
+                            className="shrink-0 rounded-md border border-neutral-700"
                           />
-                          <span className="text-sm">{oppChamp.nameJa}</span>
+                          <span className="min-w-0 truncate text-sm sm:max-w-[6rem]">
+                            {oppChamp.nameJa}
+                          </span>
                         </div>
                       )}
-                      {myChamp && oppChamp && m.lane && (
-                        <Link
-                          href={`/matchup/${myChamp.id}/${m.lane}/${oppChamp.id}?from=${fromParam}`}
-                          onClick={(e) => e.stopPropagation()}
-                          className="shrink-0 rounded-lg bg-neutral-800 px-3 py-1.5 text-xs font-medium text-white hover:bg-sky-600"
-                        >
-                          メモを書く
-                        </Link>
-                      )}
-                      <span className="text-neutral-500">
-                        {isExpanded ? "▲" : "▼"}
-                      </span>
+                      <div className="flex shrink-0 items-center gap-3">
+                        {myChamp && oppChamp && m.lane && (
+                          <Link
+                            href={`/matchup/${myChamp.id}/${m.lane}/${oppChamp.id}?from=${fromParam}`}
+                            onClick={(e) => e.stopPropagation()}
+                            className="shrink-0 rounded-lg bg-neutral-800 px-3 py-1.5 text-xs font-medium text-white hover:bg-sky-600"
+                          >
+                            メモを書く
+                          </Link>
+                        )}
+                        <span className="text-neutral-500">
+                          {isExpanded ? "▲" : "▼"}
+                        </span>
+                      </div>
                     </div>
                   </button>
 

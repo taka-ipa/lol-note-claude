@@ -16,7 +16,7 @@ export default async function ChampionDetailPage({
     prisma.champion.findUnique({ where: { id } }),
     prisma.champion.findMany({
       orderBy: { nameJa: "asc" },
-      select: { id: true, nameJa: true },
+      select: { id: true, nameJa: true, nameEn: true, iconUrl: true },
     }),
     prisma.matchupMemo.findMany({
       where: { myChampionId: id },
