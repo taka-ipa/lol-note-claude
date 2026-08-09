@@ -6,11 +6,13 @@ import {
 } from "@/lib/riot";
 
 export type BuildItem = { itemId: number; timestamp: number };
+export type SkillLevelUp = { slot: number; timestamp: number };
 
 export type ParticipantBuild = {
   puuid: string;
   participantId: number;
   items: BuildItem[];
+  skills: SkillLevelUp[];
 };
 
 export async function GET(req: NextRequest) {
@@ -30,23 +32,35 @@ export async function GET(req: NextRequest) {
     const puuids = timeline.metadata.participants;
 
     const builds = new Map<number, BuildItem[]>();
-    for (let i = 1; i <= puuids.length; i++) builds.set(i, []);
+    const skills = new Map<number, SkillLevelUp[]>();
+    for (let i = 1; i <= puuids.length; i++) {
+      builds.set(i, []);
+      skills.set(i, []);
+    }
 
     for (const frame of timeline.info.frames) {
       for (const event of frame.events) {
         if (!event.participantId) continue;
-        const list = builds.get(event.participantId);
-        if (!list) continue;
 
         if (event.type === "ITEM_PURCHASED" && event.itemId) {
-          list.push({ itemId: event.itemId, timestamp: event.timestamp });
+          builds.get(event.participantId)?.push({
+            itemId: event.itemId,
+            timestamp: event.timestamp,
+          });
         } else if (event.type === "ITEM_UNDO" && event.beforeId) {
+          const list = builds.get(event.participantId);
+          if (!list) continue;
           const idx = [...list]
             .reverse()
             .findIndex((it) => it.itemId === event.beforeId);
           if (idx !== -1) {
             list.splice(list.length - 1 - idx, 1);
           }
+        } else if (event.type === "SKILL_LEVEL_UP" && event.skillSlot) {
+          skills.get(event.participantId)?.push({
+            slot: event.skillSlot,
+            timestamp: event.timestamp,
+          });
         }
       }
     }
@@ -55,6 +69,7 @@ export async function GET(req: NextRequest) {
       puuid,
       participantId: i + 1,
       items: builds.get(i + 1) ?? [],
+      skills: skills.get(i + 1) ?? [],
     }));
 
     return NextResponse.json({ participants });

@@ -12,7 +12,7 @@ import {
   formatRank,
   queueLabel,
 } from "@/lib/rank";
-import { STAT_SHARD_LABELS } from "@/lib/runes";
+import { STAT_SHARD_ICON_URLS } from "@/lib/statShards";
 import {
   addToSearchHistory,
   type SearchHistoryEntry,
@@ -26,7 +26,8 @@ import {
 } from "@/lib/queueCategories";
 import RiotIdInput from "@/components/RiotIdInput";
 import type { HistoryMatch, HistoryParticipant } from "@/app/api/riot/history/route";
-import type { ParticipantBuild } from "@/app/api/riot/timeline/route";
+import type { BuildItem, ParticipantBuild } from "@/app/api/riot/timeline/route";
+import type { RuneTree } from "@/lib/riot";
 
 const SHOPPING_TRIP_GAP_MS = 30_000;
 
@@ -52,6 +53,7 @@ type HistoryResponse = {
   summoner: { profileIconId: number; summonerLevel: number } | null;
   rankedEntries: LeagueEntry[];
   ddragonVersion: string;
+  runeTrees: RuneTree[];
   matches: HistoryMatch[];
 } & IconMaps;
 
@@ -92,7 +94,7 @@ function ItemIcon({
   if (!itemId) {
     return (
       <div
-        className="shrink-0 rounded bg-neutral-800"
+        className="shrink-0 rounded border border-neutral-700 bg-neutral-900"
         style={{ width: size, height: size }}
       />
     );
@@ -136,7 +138,7 @@ function SpellRuneCluster({
             className="rounded border border-neutral-700 bg-neutral-950"
           />
         ) : (
-          <div key={i} className="h-[14px] w-[14px] rounded bg-neutral-800" />
+          <div key={i} className="h-[14px] w-[14px] rounded bg-neutral-950" />
         )
       )}
     </div>
@@ -170,15 +172,21 @@ function ParticipantRow({
   version,
   icons,
   isMe,
+  maxDamage,
 }: {
   p: HistoryParticipant;
   championMap: Record<string, ChampionInfo>;
   version: string;
   icons: IconMaps;
   isMe: boolean;
+  maxDamage: number;
 }) {
   const champ = champIcon(championMap, p.championName);
   const kda = p.deaths === 0 ? "Perfect" : ((p.kills + p.assists) / p.deaths).toFixed(2);
+  const damagePct =
+    maxDamage > 0
+      ? Math.max(4, Math.round((p.totalDamageDealtToChampions / maxDamage) * 100))
+      : 0;
   return (
     <div
       className={`flex items-center gap-2 rounded px-2 py-1 text-xs ${
@@ -195,15 +203,12 @@ function ParticipantRow({
           className="shrink-0 rounded border border-neutral-700"
         />
       ) : (
-        <div className="h-6 w-6 shrink-0 rounded bg-neutral-800" />
+        <div className="h-6 w-6 shrink-0 rounded bg-neutral-950" />
       )}
       <SpellRuneCluster p={p} icons={icons} />
       <span
-        className={`w-28 truncate ${isMe ? "font-semibold text-white" : "text-neutral-300"}`}
+        className={`w-24 truncate ${isMe ? "font-semibold text-white" : "text-neutral-300"}`}
       >
-        {champ?.nameJa ?? p.championName}
-      </span>
-      <span className="w-24 truncate text-neutral-500">
         {p.riotIdGameName}
       </span>
       <span className="w-24 text-neutral-300">
@@ -214,8 +219,16 @@ function ParticipantRow({
       <span className="w-16 text-neutral-400">
         {p.goldEarned.toLocaleString()}g
       </span>
-      <span className="w-16 text-neutral-400">
-        {p.totalDamageDealtToChampions.toLocaleString()}
+      <span className="w-24 shrink-0">
+        <span className="relative block h-3 w-full overflow-hidden rounded bg-neutral-950">
+          <span
+            className="absolute inset-y-0 left-0 rounded bg-red-500/70"
+            style={{ width: `${damagePct}%` }}
+          />
+        </span>
+        <span className="text-[10px] text-neutral-400">
+          {p.totalDamageDealtToChampions.toLocaleString()}
+        </span>
       </span>
       <div className="flex gap-0.5">
         {p.items.map((itemId, i) => (
@@ -226,176 +239,347 @@ function ParticipantRow({
   );
 }
 
-function RuneDetailRow({
-  p,
-  championMap,
-  icons,
-  isMe,
+function ParticipantHeaderRow() {
+  return (
+    <div className="flex items-center gap-2 px-2 py-1 text-[10px] font-medium text-neutral-500">
+      <div className="h-6 w-6 shrink-0" />
+      <div className="grid shrink-0 grid-cols-2 gap-0.5">
+        <div className="h-[14px] w-[14px]" />
+        <div className="h-[14px] w-[14px]" />
+        <div className="h-[14px] w-[14px]" />
+        <div className="h-[14px] w-[14px]" />
+      </div>
+      <span className="w-24 truncate">サモナー名</span>
+      <span className="w-24">K/D/A (KDA)</span>
+      <span className="w-14">CS</span>
+      <span className="w-16">ゴールド</span>
+      <span className="w-24">与ダメージ</span>
+      <span>アイテム</span>
+    </div>
+  );
+}
+
+const SKILL_SLOT_LETTER: Record<number, string> = { 1: "Q", 2: "W", 3: "E", 4: "R" };
+
+type ChampionAbilities = { q: string; w: string; e: string; r: string };
+const abilityCache = new Map<string, ChampionAbilities>();
+
+function useChampionAbilities(
+  championName: string,
+  version: string
+): ChampionAbilities | null {
+  const cacheKey = `${version}:${championName}`;
+  const [abilities, setAbilities] = useState<ChampionAbilities | null>(
+    abilityCache.get(cacheKey) ?? null
+  );
+
+  useEffect(() => {
+    const cached = abilityCache.get(cacheKey);
+    if (cached) {
+      setAbilities(cached);
+      return;
+    }
+    let cancelled = false;
+    fetch(
+      `https://ddragon.leagueoflegends.com/cdn/${version}/data/en_US/champion/${championName}.json`
+    )
+      .then((r) => r.json())
+      .then((json) => {
+        if (cancelled) return;
+        const d = json.data?.[championName];
+        if (!d) return;
+        const spellUrl = (file: string) =>
+          `https://ddragon.leagueoflegends.com/cdn/${version}/img/spell/${file}`;
+        const result: ChampionAbilities = {
+          q: spellUrl(d.spells[0].image.full),
+          w: spellUrl(d.spells[1].image.full),
+          e: spellUrl(d.spells[2].image.full),
+          r: spellUrl(d.spells[3].image.full),
+        };
+        abilityCache.set(cacheKey, result);
+        setAbilities(result);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [cacheKey, championName, version]);
+
+  return abilities;
+}
+
+function SkillOrderSection({
+  skills,
+  abilities,
 }: {
-  p: HistoryParticipant;
-  championMap: Record<string, ChampionInfo>;
-  icons: IconMaps;
-  isMe: boolean;
+  skills: { slot: number; timestamp: number }[];
+  abilities: ChampionAbilities | null;
 }) {
-  const champ = champIcon(championMap, p.championName);
-  const primaryTreeIcon = p.primaryStyle ? icons.styleIcons[p.primaryStyle] : undefined;
-  const subTreeIcon = p.subStyle ? icons.styleIcons[p.subStyle] : undefined;
-  const shardIds = p.statPerks
-    ? [p.statPerks.offense, p.statPerks.flex, p.statPerks.defense]
+  if (!abilities) {
+    return <p className="text-xs text-neutral-500">読み込み中...</p>;
+  }
+  if (skills.length === 0) {
+    return <p className="text-xs text-neutral-500">記録がありません</p>;
+  }
+
+  const slotIcon = (slot: number) =>
+    slot === 1 ? abilities.q : slot === 2 ? abilities.w : slot === 3 ? abilities.e : abilities.r;
+
+  const firstPickIndex = new Map<number, number>();
+  skills.forEach((s, i) => {
+    if (!firstPickIndex.has(s.slot)) firstPickIndex.set(s.slot, i);
+  });
+  const priorityOrder = [1, 2, 3]
+    .filter((slot) => firstPickIndex.has(slot))
+    .sort((a, b) => firstPickIndex.get(a)! - firstPickIndex.get(b)!);
+
+  return (
+    <div className="space-y-2">
+      <div className="flex items-center gap-1.5">
+        {priorityOrder.map((slot, i) => (
+          <Fragment key={slot}>
+            {i > 0 && <span className="text-xs text-neutral-600">&gt;</span>}
+            <Image
+              src={slotIcon(slot)}
+              alt={SKILL_SLOT_LETTER[slot]}
+              width={28}
+              height={28}
+              unoptimized
+              className="rounded border border-neutral-700"
+            />
+          </Fragment>
+        ))}
+      </div>
+      <div className="flex flex-wrap gap-1">
+        {skills.map((s, i) => (
+          <div
+            key={i}
+            className={`flex h-6 w-6 shrink-0 items-center justify-center rounded text-[10px] font-bold ${
+              s.slot === 4
+                ? "bg-sky-600 text-white"
+                : "bg-neutral-950 text-neutral-300"
+            }`}
+          >
+            {SKILL_SLOT_LETTER[s.slot]}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function RuneIcon({
+  src,
+  size,
+  selected,
+}: {
+  src: string;
+  size: number;
+  selected: boolean;
+}) {
+  return (
+    <Image
+      src={src}
+      alt=""
+      width={size}
+      height={size}
+      unoptimized
+      className={`shrink-0 rounded-full ${
+        selected
+          ? "border-2 border-sky-400 bg-neutral-950"
+          : "opacity-30 grayscale"
+      }`}
+    />
+  );
+}
+
+function RunePageSection({
+  me,
+  runeTrees,
+}: {
+  me: HistoryParticipant;
+  runeTrees: RuneTree[];
+}) {
+  const primaryTree = runeTrees.find((t) => t.id === me.primaryStyle);
+  const subTree = runeTrees.find((t) => t.id === me.subStyle);
+  const shardIds = me.statPerks
+    ? [me.statPerks.offense, me.statPerks.flex, me.statPerks.defense]
     : [];
 
   return (
-    <div
-      className={`flex flex-wrap items-center gap-2 rounded px-2 py-1 text-xs ${
-        isMe ? "bg-sky-950/40" : ""
-      }`}
-    >
-      {champ ? (
-        <Image
-          src={champ.iconUrl}
-          alt={champ.nameJa}
-          width={24}
-          height={24}
-          unoptimized
-          className="shrink-0 rounded border border-neutral-700"
-        />
-      ) : (
-        <div className="h-6 w-6 shrink-0 rounded bg-neutral-800" />
-      )}
-      <span
-        className={`w-28 shrink-0 truncate ${isMe ? "font-semibold text-white" : "text-neutral-300"}`}
-      >
-        {champ?.nameJa ?? p.championName}
-      </span>
-
-      <div className="flex items-center gap-1">
-        {primaryTreeIcon && (
+    <div className="flex flex-wrap items-start gap-6">
+      {primaryTree && (
+        <div className="flex flex-col items-center gap-3">
+          <span className="text-[10px] font-medium text-neutral-500">メイン</span>
           <Image
-            src={primaryTreeIcon}
+            src={primaryTree.icon}
             alt=""
-            width={20}
-            height={20}
+            width={26}
+            height={26}
             unoptimized
-            className="shrink-0 rounded bg-neutral-950"
+            className="shrink-0"
           />
-        )}
-        {p.primarySelections.map((perkId, i) => {
-          const src = icons.perkIcons[perkId];
-          return src ? (
-            <Image
-              key={i}
-              src={src}
-              alt=""
-              width={i === 0 ? 22 : 18}
-              height={i === 0 ? 22 : 18}
-              unoptimized
-              className="shrink-0 rounded-full border border-neutral-700 bg-neutral-950"
-            />
-          ) : (
-            <div key={i} className="h-[18px] w-[18px] shrink-0 rounded-full bg-neutral-800" />
-          );
-        })}
-      </div>
-
-      <div className="flex items-center gap-1 border-l border-neutral-800 pl-2">
-        {subTreeIcon && (
-          <Image
-            src={subTreeIcon}
-            alt=""
-            width={18}
-            height={18}
-            unoptimized
-            className="shrink-0 rounded bg-neutral-950"
-          />
-        )}
-        {p.subSelections.map((perkId, i) => {
-          const src = icons.perkIcons[perkId];
-          return src ? (
-            <Image
-              key={i}
-              src={src}
-              alt=""
-              width={18}
-              height={18}
-              unoptimized
-              className="shrink-0 rounded-full border border-neutral-700 bg-neutral-950"
-            />
-          ) : (
-            <div key={i} className="h-[18px] w-[18px] shrink-0 rounded-full bg-neutral-800" />
-          );
-        })}
-      </div>
-
-      {shardIds.length > 0 && (
-        <div className="flex items-center gap-1 border-l border-neutral-800 pl-2">
-          {shardIds.map((id, i) => (
-            <span
-              key={i}
-              className="rounded bg-neutral-800 px-1.5 py-0.5 text-[10px] text-neutral-300"
-            >
-              {STAT_SHARD_LABELS[id] ?? id}
-            </span>
+          {primaryTree.slots.map((slot, rowIdx) => (
+            <div key={rowIdx} className="flex gap-2">
+              {slot.runes.map((rune) => (
+                <RuneIcon
+                  key={rune.id}
+                  src={rune.icon}
+                  size={rowIdx === 0 ? 36 : 26}
+                  selected={me.primarySelections.includes(rune.id)}
+                />
+              ))}
+            </div>
           ))}
+        </div>
+      )}
+      {subTree && (
+        <div className="flex flex-col items-center gap-3 border-l border-neutral-700 pl-6 pt-1">
+          <span className="text-[10px] font-medium text-neutral-500">サブ</span>
+          <Image
+            src={subTree.icon}
+            alt=""
+            width={22}
+            height={22}
+            unoptimized
+            className="shrink-0"
+          />
+          {subTree.slots.slice(1).map((slot, rowIdx) => (
+            <div key={rowIdx} className="flex gap-2">
+              {slot.runes.map((rune) => (
+                <RuneIcon
+                  key={rune.id}
+                  src={rune.icon}
+                  size={24}
+                  selected={me.subSelections.includes(rune.id)}
+                />
+              ))}
+            </div>
+          ))}
+        </div>
+      )}
+      {shardIds.length > 0 && (
+        <div className="flex flex-col items-center gap-3 border-l border-neutral-700 pl-6 pt-1">
+          <span className="text-[10px] font-medium text-neutral-500">
+            ステータス
+          </span>
+          {shardIds.map((id, i) => {
+            const src = STAT_SHARD_ICON_URLS[id];
+            return src ? (
+              <Image
+                key={i}
+                src={src}
+                alt=""
+                width={20}
+                height={20}
+                unoptimized
+                className="shrink-0 rounded-full border border-neutral-700 bg-neutral-950 p-0.5"
+              />
+            ) : (
+              <div
+                key={i}
+                className="h-5 w-5 shrink-0 rounded-full bg-neutral-950"
+              />
+            );
+          })}
         </div>
       )}
     </div>
   );
 }
 
-function BuildOrderRow({
-  p,
-  championMap,
-  version,
+function MyItemTimeline({
   build,
-  isMe,
+  version,
 }: {
-  p: HistoryParticipant;
-  championMap: Record<string, ChampionInfo>;
-  version: string;
   build: ParticipantBuild | undefined;
-  isMe: boolean;
+  version: string;
 }) {
-  const champ = champIcon(championMap, p.championName);
+  if (!build) return null;
+  if (build.items.length === 0) {
+    return <p className="text-xs text-neutral-500">購入記録なし</p>;
+  }
+
+  const trips: BuildItem[][] = [];
+  for (const item of build.items) {
+    const trip = trips[trips.length - 1];
+    const last = trip?.[trip.length - 1];
+    if (trip && last && item.timestamp - last.timestamp <= SHOPPING_TRIP_GAP_MS) {
+      trip.push(item);
+    } else {
+      trips.push([item]);
+    }
+  }
+
   return (
-    <div
-      className={`flex items-center gap-2 rounded px-2 py-1 text-xs ${
-        isMe ? "bg-sky-950/40" : ""
-      }`}
-    >
-      {champ ? (
-        <Image
-          src={champ.iconUrl}
-          alt={champ.nameJa}
-          width={24}
-          height={24}
-          unoptimized
-          className="shrink-0 rounded border border-neutral-700"
-        />
-      ) : (
-        <div className="h-6 w-6 shrink-0 rounded bg-neutral-800" />
-      )}
-      <span
-        className={`w-28 shrink-0 truncate ${isMe ? "font-semibold text-white" : "text-neutral-300"}`}
-      >
-        {champ?.nameJa ?? p.championName}
-      </span>
-      <div className="flex min-w-0 items-center gap-1 overflow-x-auto pb-1">
-        {(build?.items ?? []).map((item, i, items) => {
-          const prev = items[i - 1];
-          const isNewTrip =
-            i > 0 && prev && item.timestamp - prev.timestamp > SHOPPING_TRIP_GAP_MS;
-          return (
-            <Fragment key={i}>
-              {isNewTrip && (
-                <span className="shrink-0 px-0.5 text-neutral-600">→</span>
-              )}
-              <ItemIcon itemId={item.itemId} version={version} size={20} />
-            </Fragment>
-          );
-        })}
-        {build && build.items.length === 0 && (
-          <span className="text-neutral-500">購入記録なし</span>
+    <div className="flex flex-wrap items-start gap-3">
+      {trips.map((trip, i) => (
+        <Fragment key={i}>
+          {i > 0 && <span className="mt-4 text-neutral-700">›</span>}
+          <div className="flex flex-col items-center gap-1">
+            <div className="flex gap-0.5">
+              {trip.map((item, j) => (
+                <ItemIcon key={j} itemId={item.itemId} version={version} size={24} />
+              ))}
+            </div>
+            <span className="text-[10px] text-neutral-500">
+              {Math.floor(trip[0].timestamp / 60000)}分
+            </span>
+          </div>
+        </Fragment>
+      ))}
+    </div>
+  );
+}
+
+function MyBuildPanel({
+  me,
+  version,
+  runeTrees,
+  buildState,
+}: {
+  me: HistoryParticipant;
+  version: string;
+  runeTrees: RuneTree[];
+  buildState: BuildState | undefined;
+}) {
+  const abilities = useChampionAbilities(me.championName, version);
+  const myBuild = Array.isArray(buildState)
+    ? buildState.find((b) => b.puuid === me.puuid)
+    : undefined;
+
+  return (
+    <div className="space-y-5">
+      <div>
+        <p className="mb-2 text-xs font-bold text-neutral-300">
+          アイテムビルド
+        </p>
+        {buildState === "loading" && (
+          <p className="text-xs text-neutral-500">読み込み中...</p>
         )}
+        {buildState === "error" && (
+          <p className="text-xs text-red-400">
+            アイテムビルドの取得に失敗しました
+          </p>
+        )}
+        {Array.isArray(buildState) && (
+          <MyItemTimeline build={myBuild} version={version} />
+        )}
+      </div>
+
+      <div>
+        <p className="mb-2 text-xs font-bold text-neutral-300">スキル順</p>
+        {buildState === "loading" && (
+          <p className="text-xs text-neutral-500">読み込み中...</p>
+        )}
+        {Array.isArray(buildState) && (
+          <SkillOrderSection skills={myBuild?.skills ?? []} abilities={abilities} />
+        )}
+      </div>
+
+      <div>
+        <p className="mb-2 text-xs font-bold text-neutral-300">ルーン</p>
+        <RunePageSection me={me} runeTrees={runeTrees} />
       </div>
     </div>
   );
@@ -406,6 +590,7 @@ function MatchDetail({
   championMap,
   version,
   icons,
+  runeTrees,
   myPuuid,
   tab,
   onTabChange,
@@ -416,6 +601,7 @@ function MatchDetail({
   championMap: Record<string, ChampionInfo>;
   version: string;
   icons: IconMaps;
+  runeTrees: RuneTree[];
   myPuuid: string;
   tab: "overview" | "build";
   onTabChange: (tab: "overview" | "build") => void;
@@ -424,15 +610,15 @@ function MatchDetail({
 }) {
   const blueTeam = match.participants.filter((p) => p.teamId === 100);
   const redTeam = match.participants.filter((p) => p.teamId === 200);
-
-  const buildByPuuid: Record<string, ParticipantBuild> = {};
-  if (Array.isArray(buildState)) {
-    for (const b of buildState) buildByPuuid[b.puuid] = b;
-  }
+  const me = match.participants.find((p) => p.puuid === myPuuid);
+  const maxDamage = Math.max(
+    ...match.participants.map((p) => p.totalDamageDealtToChampions),
+    1
+  );
 
   return (
-    <div className="border-t border-neutral-800 bg-neutral-950/60 p-3">
-      <div className="mb-3 flex gap-2 border-b border-neutral-800 pb-2">
+    <div className="border-t border-neutral-700 bg-neutral-800 p-3">
+      <div className="mb-3 flex gap-2 border-b border-neutral-700 pb-2">
         <button
           type="button"
           onClick={() => onTabChange("overview")}
@@ -462,6 +648,7 @@ function MatchDetail({
 
       {tab === "overview" && (
         <div className="space-y-3">
+          <ParticipantHeaderRow />
           <div>
             <p className="mb-1 text-xs font-semibold text-sky-400">
               ブルーチーム
@@ -475,6 +662,7 @@ function MatchDetail({
                   version={version}
                   icons={icons}
                   isMe={p.puuid === myPuuid}
+                  maxDamage={maxDamage}
                 />
               ))}
             </div>
@@ -492,6 +680,7 @@ function MatchDetail({
                   version={version}
                   icons={icons}
                   isMe={p.puuid === myPuuid}
+                  maxDamage={maxDamage}
                 />
               ))}
             </div>
@@ -499,99 +688,19 @@ function MatchDetail({
         </div>
       )}
 
-      {tab === "build" && (
-        <div className="space-y-5">
-          <div>
-            <p className="mb-2 text-xs font-bold text-neutral-300">
-              アイテムビルド
-            </p>
-            {buildState === "loading" && (
-              <p className="text-xs text-neutral-500">読み込み中...</p>
-            )}
-            {buildState === "error" && (
-              <p className="text-xs text-red-400">
-                アイテムビルドの取得に失敗しました
-              </p>
-            )}
-            {Array.isArray(buildState) && (
-              <div className="space-y-3">
-                <div>
-                  <p className="mb-1 text-xs font-semibold text-sky-400">
-                    ブルーチーム
-                  </p>
-                  <div className="space-y-0.5">
-                    {blueTeam.map((p) => (
-                      <BuildOrderRow
-                        key={p.puuid}
-                        p={p}
-                        championMap={championMap}
-                        version={version}
-                        build={buildByPuuid[p.puuid]}
-                        isMe={p.puuid === myPuuid}
-                      />
-                    ))}
-                  </div>
-                </div>
-                <div>
-                  <p className="mb-1 text-xs font-semibold text-red-400">
-                    レッドチーム
-                  </p>
-                  <div className="space-y-0.5">
-                    {redTeam.map((p) => (
-                      <BuildOrderRow
-                        key={p.puuid}
-                        p={p}
-                        championMap={championMap}
-                        version={version}
-                        build={buildByPuuid[p.puuid]}
-                        isMe={p.puuid === myPuuid}
-                      />
-                    ))}
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-
-          <div>
-            <p className="mb-2 text-xs font-bold text-neutral-300">ルーン</p>
-            <div className="space-y-3">
-              <div>
-                <p className="mb-1 text-xs font-semibold text-sky-400">
-                  ブルーチーム
-                </p>
-                <div className="space-y-0.5">
-                  {blueTeam.map((p) => (
-                    <RuneDetailRow
-                      key={p.puuid}
-                      p={p}
-                      championMap={championMap}
-                      icons={icons}
-                      isMe={p.puuid === myPuuid}
-                    />
-                  ))}
-                </div>
-              </div>
-              <div>
-                <p className="mb-1 text-xs font-semibold text-red-400">
-                  レッドチーム
-                </p>
-                <div className="space-y-0.5">
-                  {redTeam.map((p) => (
-                    <RuneDetailRow
-                      key={p.puuid}
-                      p={p}
-                      championMap={championMap}
-                      icons={icons}
-                      isMe={p.puuid === myPuuid}
-                    />
-                  ))}
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+      {tab === "build" &&
+        (me ? (
+          <MyBuildPanel
+            me={me}
+            version={version}
+            runeTrees={runeTrees}
+            buildState={buildState}
+          />
+        ) : (
+          <p className="text-xs text-neutral-500">
+            この試合のデータが見つかりませんでした
+          </p>
+        ))}
     </div>
   );
 }
@@ -1104,6 +1213,7 @@ export default function SummonerSearch({
                         perkIcons: data.perkIcons,
                         styleIcons: data.styleIcons,
                       }}
+                      runeTrees={data.runeTrees}
                       myPuuid={data.account.puuid}
                       tab={matchTab[m.matchId] ?? "overview"}
                       onTabChange={(tab) =>

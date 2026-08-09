@@ -196,6 +196,7 @@ export async function GET(req: NextRequest) {
       spellIcons,
       perkIcons: runeIcons.perkIcons,
       styleIcons: runeIcons.styleIcons,
+      runeTrees: runeIcons.trees,
       matches: matches.filter((m): m is HistoryMatch => m !== null),
     });
   } catch (err) {

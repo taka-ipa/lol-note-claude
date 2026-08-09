@@ -233,6 +233,8 @@ export type TimelineEvent = {
   itemId?: number;
   beforeId?: number;
   afterId?: number;
+  skillSlot?: number;
+  levelUpType?: string;
 };
 
 export type MatchTimelineDto = {
@@ -280,15 +282,23 @@ type DDragonRuneStyle = {
   slots: { runes: { id: number; icon: string }[] }[];
 };
 
+export type RuneTree = {
+  id: number;
+  icon: string;
+  slots: { runes: { id: number; icon: string }[] }[];
+};
+
 let cachedRuneIconMaps: {
   version: string;
   perkIcons: Record<number, string>;
   styleIcons: Record<number, string>;
+  trees: RuneTree[];
 } | null = null;
 
 export async function getRuneIconMaps(version: string): Promise<{
   perkIcons: Record<number, string>;
   styleIcons: Record<number, string>;
+  trees: RuneTree[];
 }> {
   if (cachedRuneIconMaps && cachedRuneIconMaps.version === version) {
     return cachedRuneIconMaps;
@@ -298,15 +308,20 @@ export async function getRuneIconMaps(version: string): Promise<{
   ).then((r) => r.json());
   const perkIcons: Record<number, string> = {};
   const styleIcons: Record<number, string> = {};
+  const trees: RuneTree[] = [];
   for (const style of styles) {
-    styleIcons[style.id] = `https://ddragon.leagueoflegends.com/cdn/img/${style.icon}`;
-    for (const slot of style.slots) {
-      for (const rune of slot.runes) {
-        perkIcons[rune.id] = `https://ddragon.leagueoflegends.com/cdn/img/${rune.icon}`;
-      }
-    }
+    const styleIconUrl = `https://ddragon.leagueoflegends.com/cdn/img/${style.icon}`;
+    styleIcons[style.id] = styleIconUrl;
+    const slots = style.slots.map((slot) => ({
+      runes: slot.runes.map((rune) => {
+        const iconUrl = `https://ddragon.leagueoflegends.com/cdn/img/${rune.icon}`;
+        perkIcons[rune.id] = iconUrl;
+        return { id: rune.id, icon: iconUrl };
+      }),
+    }));
+    trees.push({ id: style.id, icon: styleIconUrl, slots });
   }
-  cachedRuneIconMaps = { version, perkIcons, styleIcons };
+  cachedRuneIconMaps = { version, perkIcons, styleIcons, trees };
   return cachedRuneIconMaps;
 }
 
