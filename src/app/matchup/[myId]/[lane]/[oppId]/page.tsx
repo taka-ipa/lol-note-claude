@@ -5,12 +5,23 @@ import { prisma } from "@/lib/prisma";
 import { LANES, LANE_LABELS, type Lane } from "@/lib/lane";
 import MemoEditor from "@/components/MemoEditor";
 
+function safeInternalPath(path: string | undefined): string | null {
+  if (!path) return null;
+  // Only allow same-origin relative paths under /summoners/ to avoid open redirects.
+  if (!/^\/summoners\/[^/]+\/[^/]+$/.test(path)) return null;
+  return path;
+}
+
 export default async function MatchupPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ myId: string; lane: string; oppId: string }>;
+  searchParams: Promise<{ from?: string }>;
 }) {
   const { myId, lane, oppId } = await params;
+  const { from } = await searchParams;
+  const returnTo = safeInternalPath(from);
 
   if (!LANES.includes(lane as Lane)) notFound();
 
@@ -32,12 +43,22 @@ export default async function MatchupPage({
 
   return (
     <div>
-      <Link
-        href={`/champions/${myChampion.id}`}
-        className="mb-4 inline-block text-sm text-neutral-400 hover:text-white"
-      >
-        ← {myChampion.nameJa} のマッチアップ一覧に戻る
-      </Link>
+      <div className="mb-4 flex flex-wrap gap-x-4 gap-y-1">
+        {returnTo && (
+          <Link
+            href={returnTo}
+            className="inline-block text-sm text-neutral-400 hover:text-white"
+          >
+            ← サモナー戦績に戻る
+          </Link>
+        )}
+        <Link
+          href={`/champions/${myChampion.id}`}
+          className="inline-block text-sm text-neutral-400 hover:text-white"
+        >
+          ← {myChampion.nameJa} のマッチアップ一覧に戻る
+        </Link>
+      </div>
 
       <div className="mb-6 flex items-center gap-4">
         <Image

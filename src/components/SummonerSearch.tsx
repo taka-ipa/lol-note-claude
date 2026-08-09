@@ -49,6 +49,10 @@ function champIcon(map: Record<string, ChampionInfo>, championName: string) {
   return map[championName];
 }
 
+function summonerUrl(platform: Platform, gameName: string, tagLine: string) {
+  return `/summoners/${platform}/${encodeURIComponent(gameName)}-${encodeURIComponent(tagLine)}`;
+}
+
 function formatDuration(seconds: number) {
   const m = Math.floor(seconds / 60);
   const s = seconds % 60;
@@ -651,9 +655,7 @@ export default function SummonerSearch({
       return;
     }
     const [gameName, tagLine] = parts;
-    router.push(
-      `/summoners/${platform}/${encodeURIComponent(gameName)}-${encodeURIComponent(tagLine)}`
-    );
+    router.push(summonerUrl(platform, gameName, tagLine));
   }
 
   async function loadBuild(matchId: string) {
@@ -822,6 +824,13 @@ export default function SummonerSearch({
             )}
           </div>
 
+          {(() => {
+            const currentPlatform = searchedPlatform ?? platform;
+            const fromParam = encodeURIComponent(
+              `/summoners/${currentPlatform}/${data.account.gameName}-${data.account.tagLine}`
+            );
+            return (
+          <>
           <div className="space-y-2">
             {data.matches.map((m) => {
               const myChamp = champIcon(championMap, m.championName);
@@ -918,7 +927,7 @@ export default function SummonerSearch({
                       )}
                       {myChamp && oppChamp && m.lane && (
                         <Link
-                          href={`/matchup/${myChamp.id}/${m.lane}/${oppChamp.id}`}
+                          href={`/matchup/${myChamp.id}/${m.lane}/${oppChamp.id}?from=${fromParam}`}
                           onClick={(e) => e.stopPropagation()}
                           className="shrink-0 rounded-lg bg-neutral-800 px-3 py-1.5 text-xs font-medium text-white hover:bg-sky-600"
                         >
@@ -958,6 +967,9 @@ export default function SummonerSearch({
           {data.matches.length === 0 && (
             <p className="text-neutral-500">直近の試合が見つかりませんでした</p>
           )}
+          </>
+            );
+          })()}
         </div>
       )}
     </div>
