@@ -13,6 +13,7 @@ import {
   queueLabel,
 } from "@/lib/rank";
 import { STAT_SHARD_ICON_URLS } from "@/lib/statShards";
+import { RANK_EMBLEM_URLS } from "@/lib/rankEmblems";
 import {
   addToSearchHistory,
   type SearchHistoryEntry,
@@ -145,6 +146,35 @@ function SpellRuneCluster({
   );
 }
 
+// Community Dragon's ranked-emblem PNGs are 16:9 canvases where the crest
+// itself only fills a small centered region; measured across all 10 tiers,
+// this box safely contains the artwork on every one with a little padding.
+const EMBLEM_CROP = { x: 0.35, w: 0.3, y: 0.27, h: 0.4 };
+
+function RankEmblemIcon({ tier, height = 67 }: { tier: string; height?: number }) {
+  const src = RANK_EMBLEM_URLS[tier];
+  if (!src) return null;
+  const width = Math.round((height * EMBLEM_CROP.w * 16) / (EMBLEM_CROP.h * 9));
+  const renderedW = Math.round(width / EMBLEM_CROP.w);
+  const renderedH = Math.round(height / EMBLEM_CROP.h);
+  const left = -Math.round(renderedW * EMBLEM_CROP.x);
+  const top = -Math.round(renderedH * EMBLEM_CROP.y);
+
+  return (
+    <div className="relative shrink-0 overflow-hidden" style={{ width, height }}>
+      <Image
+        src={src}
+        alt=""
+        width={renderedW}
+        height={renderedH}
+        unoptimized
+        className="absolute max-w-none"
+        style={{ width: renderedW, height: renderedH, left, top }}
+      />
+    </div>
+  );
+}
+
 function RankCard({ entry }: { entry: LeagueEntry | undefined }) {
   const label = entry ? QUEUE_LABELS[entry.queueType] ?? entry.queueType : "";
   if (!entry) return null;
@@ -153,15 +183,18 @@ function RankCard({ entry }: { entry: LeagueEntry | undefined }) {
   const colorClass = TIER_COLORS[entry.tier] ?? "text-neutral-300 border-neutral-600";
 
   return (
-    <div className="rounded-lg border border-neutral-800 bg-neutral-900 p-3">
-      <p className="mb-1 text-xs text-neutral-500">{label}</p>
-      <p className={`text-sm font-bold ${colorClass.split(" ")[0]}`}>
-        {formatRank(entry.tier, entry.rank)}
-      </p>
-      <p className="text-xs text-neutral-400">{entry.leaguePoints} LP</p>
-      <p className="text-xs text-neutral-500">
-        {entry.wins}勝{entry.losses}敗 (勝率{winRate}%)
-      </p>
+    <div className="flex items-center gap-3 rounded-lg border border-neutral-800 bg-neutral-900 p-3">
+      <RankEmblemIcon tier={entry.tier} />
+      <div>
+        <p className="mb-1 text-xs text-neutral-500">{label}</p>
+        <p className={`text-sm font-bold ${colorClass.split(" ")[0]}`}>
+          {formatRank(entry.tier, entry.rank)}
+        </p>
+        <p className="text-xs text-neutral-400">{entry.leaguePoints} LP</p>
+        <p className="text-xs text-neutral-500">
+          {entry.wins}勝{entry.losses}敗 (勝率{winRate}%)
+        </p>
+      </div>
     </div>
   );
 }
@@ -1061,18 +1094,30 @@ export default function SummonerSearch({
       {data && (
         <div>
           <div className="mb-4 flex flex-wrap items-center gap-4">
-            <div>
-              <h2 className="text-lg font-semibold text-white">
-                {data.account.gameName}
-                <span className="text-neutral-500">
-                  #{data.account.tagLine}
-                </span>
-              </h2>
+            <div className="flex items-center gap-3">
               {data.summoner && (
-                <span className="text-sm text-neutral-400">
-                  Lv.{data.summoner.summonerLevel}
-                </span>
+                <Image
+                  src={`https://ddragon.leagueoflegends.com/cdn/${data.ddragonVersion}/img/profileicon/${data.summoner.profileIconId}.png`}
+                  alt=""
+                  width={64}
+                  height={64}
+                  unoptimized
+                  className="shrink-0 rounded-full border border-neutral-700"
+                />
               )}
+              <div>
+                <h2 className="text-lg font-semibold text-white">
+                  {data.account.gameName}
+                  <span className="text-neutral-500">
+                    #{data.account.tagLine}
+                  </span>
+                </h2>
+                {data.summoner && (
+                  <span className="text-sm text-neutral-400">
+                    Lv.{data.summoner.summonerLevel}
+                  </span>
+                )}
+              </div>
             </div>
             <RankCard entry={soloEntry} />
             <RankCard entry={flexEntry} />
