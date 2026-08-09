@@ -1,8 +1,9 @@
 "use client";
 
-import { Fragment, useState } from "react";
+import { Fragment, useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { PLATFORMS, type Platform } from "@/lib/riot";
 import { LANE_LABELS, type Lane } from "@/lib/lane";
 import {
@@ -579,16 +580,25 @@ function MatchDetail({
   );
 }
 
+type InitialSearch = { platform: Platform; gameName: string; tagLine: string };
+
 export default function SummonerSearch({
   championMap,
+  hero = false,
+  initial,
 }: {
   championMap: Record<string, ChampionInfo>;
+  hero?: boolean;
+  initial?: InitialSearch;
 }) {
-  const [platform, setPlatform] = useState<Platform>("jp1");
+  const router = useRouter();
+  const [platform, setPlatform] = useState<Platform>(initial?.platform ?? "jp1");
   const [searchedPlatform, setSearchedPlatform] = useState<Platform | null>(
     null
   );
-  const [riotId, setRiotId] = useState("");
+  const [riotId, setRiotId] = useState(
+    initial ? `${initial.gameName}#${initial.tagLine}` : ""
+  );
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [data, setData] = useState<HistoryResponse | null>(null);
@@ -598,14 +608,7 @@ export default function SummonerSearch({
   );
   const [buildCache, setBuildCache] = useState<Record<string, BuildState>>({});
 
-  async function handleSearch(e: React.FormEvent) {
-    e.preventDefault();
-    const parts = riotId.split("#");
-    if (parts.length !== 2 || !parts[0] || !parts[1]) {
-      setError("「ゲーム名#タグ」の形式で入力してください (例: さば#khan3)");
-      return;
-    }
-    const [gameName, tagLine] = parts;
+  async function runSearch(p: Platform, gameName: string, tagLine: string) {
     setLoading(true);
     setError(null);
     setData(null);
@@ -614,7 +617,7 @@ export default function SummonerSearch({
     setBuildCache({});
     try {
       const res = await fetch(
-        `/api/riot/history?platform=${platform}&gameName=${encodeURIComponent(
+        `/api/riot/history?platform=${p}&gameName=${encodeURIComponent(
           gameName
         )}&tagLine=${encodeURIComponent(tagLine)}&count=20`
       );
@@ -624,12 +627,33 @@ export default function SummonerSearch({
         return;
       }
       setData(json);
-      setSearchedPlatform(platform);
+      setSearchedPlatform(p);
     } catch {
       setError("通信エラーが発生しました");
     } finally {
       setLoading(false);
     }
+  }
+
+  useEffect(() => {
+    if (!initial) return;
+    setPlatform(initial.platform);
+    setRiotId(`${initial.gameName}#${initial.tagLine}`);
+    runSearch(initial.platform, initial.gameName, initial.tagLine);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initial?.platform, initial?.gameName, initial?.tagLine]);
+
+  function handleSearch(e: React.FormEvent) {
+    e.preventDefault();
+    const parts = riotId.split("#");
+    if (parts.length !== 2 || !parts[0] || !parts[1]) {
+      setError("「ゲーム名#タグ」の形式で入力してください (例: さば#khan3)");
+      return;
+    }
+    const [gameName, tagLine] = parts;
+    router.push(
+      `/summoners/${platform}/${encodeURIComponent(gameName)}-${encodeURIComponent(tagLine)}`
+    );
   }
 
   async function loadBuild(matchId: string) {
@@ -657,53 +681,120 @@ export default function SummonerSearch({
     (e) => e.queueType === "RANKED_FLEX_SR"
   );
 
+  const showHero = hero && !data;
+
   return (
     <div>
-      <form
-        onSubmit={handleSearch}
-        className="mb-6 flex flex-wrap items-end gap-3"
-      >
-        <div>
-          <label className="mb-1 block text-xs text-neutral-400">
-            リージョン
-          </label>
-          <select
-            value={platform}
-            onChange={(e) => setPlatform(e.target.value as Platform)}
-            className="rounded-lg border border-neutral-700 bg-neutral-900 px-3 py-2 text-sm text-white focus:border-sky-500 focus:outline-none"
-          >
-            {PLATFORMS.map((p) => (
-              <option key={p.value} value={p.value}>
-                {p.label}
-              </option>
-            ))}
-          </select>
-        </div>
-        <div className="flex-1">
-          <label className="mb-1 block text-xs text-neutral-400">
-            Riot ID (ゲーム名#タグ)
-          </label>
-          <input
-            type="text"
-            value={riotId}
-            onChange={(e) => setRiotId(e.target.value)}
-            placeholder="さば#khan3"
-            className="w-full max-w-sm rounded-lg border border-neutral-700 bg-neutral-900 px-3 py-2 text-sm text-white placeholder-neutral-500 focus:border-sky-500 focus:outline-none"
-          />
-        </div>
-        <button
-          type="submit"
-          disabled={loading}
-          className="rounded-lg bg-sky-600 px-5 py-2 text-sm font-medium text-white hover:bg-sky-500 disabled:opacity-50"
-        >
-          {loading ? "検索中..." : "検索"}
-        </button>
-      </form>
+      {showHero ? (
+        <div className="flex flex-col items-center py-16 text-center">
+          <h1 className="text-4xl font-extrabold tracking-tight text-white sm:text-5xl">
+            LoL Matchup{" "}
+            <span className="bg-gradient-to-r from-sky-400 to-emerald-400 bg-clip-text text-transparent">
+              Note
+            </span>
+          </h1>
+          <p className="mt-3 text-neutral-400">
+            サモナー名を検索して、戦績からマッチアップメモへ。
+          </p>
 
-      {error && (
-        <div className="mb-4 rounded-lg border border-red-800 bg-red-950/50 p-3 text-sm text-red-300">
-          {error}
+          <form
+            onSubmit={handleSearch}
+            className="mt-8 flex w-full max-w-2xl items-center gap-0 rounded-full border border-neutral-700 bg-neutral-900 p-1.5 shadow-lg"
+          >
+            <select
+              value={platform}
+              onChange={(e) => setPlatform(e.target.value as Platform)}
+              className="shrink-0 rounded-full bg-transparent px-4 py-2.5 text-sm text-neutral-300 focus:outline-none"
+            >
+              {PLATFORMS.map((p) => (
+                <option
+                  key={p.value}
+                  value={p.value}
+                  className="bg-neutral-900 text-white"
+                >
+                  {p.label}
+                </option>
+              ))}
+            </select>
+            <span className="h-6 w-px shrink-0 bg-neutral-700" />
+            <input
+              type="text"
+              value={riotId}
+              onChange={(e) => setRiotId(e.target.value)}
+              placeholder="ゲーム名 + #タグ (例: さば#khan3)"
+              className="min-w-0 flex-1 bg-transparent px-4 py-2.5 text-sm text-white placeholder-neutral-500 focus:outline-none"
+            />
+            <button
+              type="submit"
+              disabled={loading}
+              aria-label="検索"
+              className="flex shrink-0 items-center justify-center rounded-full bg-sky-600 px-6 py-2.5 text-sm font-medium text-white hover:bg-sky-500 disabled:opacity-50"
+            >
+              {loading ? "検索中..." : "検索"}
+            </button>
+          </form>
+
+          <div className="mt-4 flex gap-3 text-sm">
+            <Link href="/champions" className="text-neutral-400 hover:text-sky-400">
+              チャンプ検索はこちら →
+            </Link>
+          </div>
+
+          {error && (
+            <div className="mt-6 w-full max-w-2xl rounded-lg border border-red-800 bg-red-950/50 p-3 text-sm text-red-300">
+              {error}
+            </div>
+          )}
         </div>
+      ) : (
+        <>
+          <form
+            onSubmit={handleSearch}
+            className="mb-6 flex flex-wrap items-end gap-3"
+          >
+            <div>
+              <label className="mb-1 block text-xs text-neutral-400">
+                リージョン
+              </label>
+              <select
+                value={platform}
+                onChange={(e) => setPlatform(e.target.value as Platform)}
+                className="rounded-lg border border-neutral-700 bg-neutral-900 px-3 py-2 text-sm text-white focus:border-sky-500 focus:outline-none"
+              >
+                {PLATFORMS.map((p) => (
+                  <option key={p.value} value={p.value}>
+                    {p.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="flex-1">
+              <label className="mb-1 block text-xs text-neutral-400">
+                Riot ID (ゲーム名#タグ)
+              </label>
+              <input
+                type="text"
+                value={riotId}
+                onChange={(e) => setRiotId(e.target.value)}
+                placeholder="さば#khan3"
+                className="w-full max-w-sm rounded-lg border border-neutral-700 bg-neutral-900 px-3 py-2 text-sm text-white placeholder-neutral-500 focus:border-sky-500 focus:outline-none"
+              />
+            </div>
+            <button
+              type="submit"
+              disabled={loading}
+              className="rounded-lg bg-sky-600 px-5 py-2 text-sm font-medium text-white hover:bg-sky-500 disabled:opacity-50"
+            >
+              {loading ? "検索中..." : "検索"}
+            </button>
+          </form>
+
+          {error && (
+            <div className="mb-4 rounded-lg border border-red-800 bg-red-950/50 p-3 text-sm text-red-300">
+              {error}
+            </div>
+          )}
+        </>
       )}
 
       {data && (
