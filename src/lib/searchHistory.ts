@@ -48,15 +48,10 @@ export function addToSearchHistory(entry: {
   }
 }
 
-export function matchSearchHistory(query: string): SearchHistoryEntry[] {
-  const q = query.trim().toLowerCase();
+export function matchByGameName(gameName: string): SearchHistoryEntry[] {
+  const q = gameName.trim().toLowerCase();
   if (!q) return [];
   return getSearchHistory()
-    .filter((e) => {
-      const full = `${e.gameName}#${e.tagLine}`.toLowerCase();
-      return (
-        full.startsWith(q) || e.gameName.toLowerCase().startsWith(q)
-      );
-    })
+    .filter((e) => e.gameName.toLowerCase().startsWith(q))
     .slice(0, 6);
 }

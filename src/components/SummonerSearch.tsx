@@ -605,9 +605,8 @@ export default function SummonerSearch({
   const [searchedPlatform, setSearchedPlatform] = useState<Platform | null>(
     null
   );
-  const [riotId, setRiotId] = useState(
-    initial ? `${initial.gameName}#${initial.tagLine}` : ""
-  );
+  const [gameName, setGameName] = useState(initial?.gameName ?? "");
+  const [tagLine, setTagLine] = useState(initial?.tagLine ?? "");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [data, setData] = useState<HistoryResponse | null>(null);
@@ -652,20 +651,21 @@ export default function SummonerSearch({
   useEffect(() => {
     if (!initial) return;
     setPlatform(initial.platform);
-    setRiotId(`${initial.gameName}#${initial.tagLine}`);
+    setGameName(initial.gameName);
+    setTagLine(initial.tagLine);
     runSearch(initial.platform, initial.gameName, initial.tagLine);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initial?.platform, initial?.gameName, initial?.tagLine]);
 
   function handleSearch(e: React.FormEvent) {
     e.preventDefault();
-    const parts = riotId.split("#");
-    if (parts.length !== 2 || !parts[0] || !parts[1]) {
-      setError("「ゲーム名#タグ」の形式で入力してください");
+    const trimmedGameName = gameName.trim();
+    const trimmedTagLine = tagLine.trim().replace(/^#/, "");
+    if (!trimmedGameName || !trimmedTagLine) {
+      setError("ゲーム名とタグの両方を入力してください");
       return;
     }
-    const [gameName, tagLine] = parts;
-    router.push(summonerUrl(platform, gameName, tagLine));
+    router.push(summonerUrl(platform, trimmedGameName, trimmedTagLine));
   }
 
   function handleSelectSuggestion(entry: SearchHistoryEntry) {
@@ -734,12 +734,16 @@ export default function SummonerSearch({
             </select>
             <span className="h-6 w-px shrink-0 bg-neutral-700" />
             <RiotIdInput
-              value={riotId}
-              onChange={setRiotId}
+              gameName={gameName}
+              tagLine={tagLine}
+              onGameNameChange={setGameName}
+              onTagLineChange={setTagLine}
               onSelectSuggestion={handleSelectSuggestion}
               platform={platform}
-              placeholder="ゲーム名 + #タグ"
-              className="min-w-0 w-full bg-transparent px-4 py-2.5 text-sm text-white placeholder-neutral-500 focus:outline-none"
+              gameNamePlaceholder="ゲーム名 (例: さば)"
+              tagLinePlaceholder="タグ (例: khan3)"
+              gameNameClassName="min-w-0 w-full bg-transparent px-4 py-2.5 text-sm text-white placeholder-neutral-500 focus:outline-none"
+              tagLineClassName="w-24 shrink-0 bg-transparent px-2 py-2.5 text-sm text-white placeholder-neutral-500 focus:outline-none"
             />
             <button
               type="submit"
@@ -787,15 +791,19 @@ export default function SummonerSearch({
             </div>
             <div className="max-w-sm flex-1">
               <label className="mb-1 block text-xs text-neutral-400">
-                Riot ID (ゲーム名#タグ)
+                ゲーム名 / タグ
               </label>
               <RiotIdInput
-                value={riotId}
-                onChange={setRiotId}
+                gameName={gameName}
+                tagLine={tagLine}
+                onGameNameChange={setGameName}
+                onTagLineChange={setTagLine}
                 onSelectSuggestion={handleSelectSuggestion}
                 platform={platform}
-                placeholder="ゲーム名 + #タグ"
-                className="w-full rounded-lg border border-neutral-700 bg-neutral-900 px-3 py-2 text-sm text-white placeholder-neutral-500 focus:border-sky-500 focus:outline-none"
+                gameNamePlaceholder="さば"
+                tagLinePlaceholder="khan3"
+                gameNameClassName="w-full rounded-lg border border-neutral-700 bg-neutral-900 px-3 py-2 text-sm text-white placeholder-neutral-500 focus:border-sky-500 focus:outline-none"
+                tagLineClassName="w-20 shrink-0 rounded-lg border border-neutral-700 bg-neutral-900 px-2 py-2 text-sm text-white placeholder-neutral-500 focus:border-sky-500 focus:outline-none"
               />
             </div>
             <button
