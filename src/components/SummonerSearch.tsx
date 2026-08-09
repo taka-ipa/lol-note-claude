@@ -915,10 +915,8 @@ export default function SummonerSearch({
               onTagLineChange={setTagLine}
               onSelectSuggestion={handleSelectSuggestion}
               platform={platform}
-              gameNamePlaceholder="サモナーネーム"
-              tagLinePlaceholder="タグ"
-              gameNameClassName="min-w-0 w-full bg-transparent px-4 py-2.5 text-sm text-white placeholder-neutral-500 focus:outline-none"
-              tagLineClassName="w-24 shrink-0 bg-transparent px-2 py-2.5 text-sm text-white placeholder-neutral-500 focus:outline-none"
+              placeholder="サモナーネーム#タグ"
+              className="min-w-0 w-full bg-transparent px-4 py-2.5 text-sm text-white placeholder-neutral-500 focus:outline-none"
             />
             <button
               type="submit"
@@ -975,10 +973,8 @@ export default function SummonerSearch({
                 onTagLineChange={setTagLine}
                 onSelectSuggestion={handleSelectSuggestion}
                 platform={platform}
-                gameNamePlaceholder="サモナーネーム"
-                tagLinePlaceholder="タグ"
-                gameNameClassName="w-full rounded-lg border border-neutral-700 bg-neutral-900 px-3 py-2 text-sm text-white placeholder-neutral-500 focus:border-sky-500 focus:outline-none"
-                tagLineClassName="w-20 shrink-0 rounded-lg border border-neutral-700 bg-neutral-900 px-2 py-2 text-sm text-white placeholder-neutral-500 focus:border-sky-500 focus:outline-none"
+                placeholder="サモナーネーム#タグ"
+                className="w-full rounded-lg border border-neutral-700 bg-neutral-900 px-3 py-2 text-sm text-white placeholder-neutral-500 focus:border-sky-500 focus:outline-none"
               />
             </div>
             <button
@@ -1111,8 +1107,8 @@ export default function SummonerSearch({
                   key={m.matchId}
                   className={`overflow-hidden rounded-lg border-l-4 ${
                     m.win
-                      ? "border-sky-500 bg-sky-950/30"
-                      : "border-red-500 bg-red-950/20"
+                      ? "border-sky-400 bg-sky-900/50"
+                      : "border-red-400 bg-red-900/40"
                   }`}
                 >
                   <button
@@ -1125,7 +1121,7 @@ export default function SummonerSearch({
                     <div className="w-32 shrink-0">
                       <p
                         className={`text-sm font-semibold ${
-                          m.win ? "text-sky-400" : "text-red-400"
+                          m.win ? "text-sky-300" : "text-red-300"
                         }`}
                       >
                         {m.win ? "勝利" : "敗北"}
