@@ -43,50 +43,54 @@ export default async function MatchupPage({
 
   return (
     <div>
-      <div className="mb-4 flex flex-wrap gap-x-4 gap-y-1">
+      <div className="mb-4 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-neutral-400">
         {returnTo && (
-          <Link
-            href={returnTo}
-            className="inline-block text-sm text-neutral-400 hover:text-white"
-          >
-            ← サモナー戦績に戻る
-          </Link>
+          <>
+            <Link href={returnTo} className="transition-colors hover:text-white">
+              ← サモナー戦績に戻る
+            </Link>
+            <span className="text-neutral-700">·</span>
+          </>
         )}
         <Link
           href={`/champions/${myChampion.id}`}
-          className="inline-block text-sm text-neutral-400 hover:text-white"
+          className="transition-colors hover:text-white"
         >
           ← {myChampion.nameJa} のマッチアップ一覧に戻る
         </Link>
       </div>
 
-      <div className="mb-6 flex flex-wrap items-center gap-4">
-        <div className="flex shrink-0 items-center gap-4">
+      <div className="mb-6 flex flex-wrap items-center gap-4 rounded-xl border border-neutral-800 bg-neutral-900 p-5 shadow-sm">
+        <div className="flex shrink-0 items-center gap-3">
           <Image
             src={myChampion.iconUrl}
             alt={myChampion.nameJa}
             width={64}
             height={64}
             unoptimized
-            className="rounded-lg border border-neutral-700"
+            className="rounded-lg border border-neutral-700 shadow-md"
           />
-          <span className="text-xl text-neutral-500">vs</span>
+          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-neutral-800 text-[11px] font-bold text-neutral-400">
+            VS
+          </span>
           <Image
             src={opponentChampion.iconUrl}
             alt={opponentChampion.nameJa}
             width={64}
             height={64}
             unoptimized
-            className="rounded-lg border border-neutral-700"
+            className="rounded-lg border border-neutral-700 shadow-md"
           />
         </div>
         <div>
           <h1 className="text-xl font-bold text-white">
-            {myChampion.nameJa} vs {opponentChampion.nameJa}
+            {myChampion.nameJa}
+            <span className="mx-1.5 font-normal text-neutral-500">vs</span>
+            {opponentChampion.nameJa}
           </h1>
-          <p className="text-sm text-sky-400">
+          <span className="mt-1.5 inline-block rounded-full bg-sky-950 px-2.5 py-0.5 text-xs font-medium text-sky-400">
             {LANE_LABELS[lane as Lane]}
-          </p>
+          </span>
         </div>
       </div>
 

@@ -64,7 +64,7 @@ export default function RiotIdInput({
                   e.preventDefault();
                   onSelectSuggestion(s);
                 }}
-                className="flex w-full items-center justify-between px-4 py-2 text-sm text-neutral-200 hover:bg-neutral-800"
+                className="flex w-full items-center justify-between px-4 py-2 text-sm text-neutral-200 transition-colors hover:bg-neutral-800"
               >
                 <span>
                   {s.gameName}

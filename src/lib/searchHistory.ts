@@ -50,7 +50,8 @@ export function addToSearchHistory(entry: {
 
 export function matchByGameName(gameName: string): SearchHistoryEntry[] {
   const q = gameName.trim().toLowerCase();
-  if (!q) return [];
+  // Empty query (e.g. clicking an empty field) shows recent history, newest first.
+  if (!q) return getSearchHistory().slice(0, 6);
   return getSearchHistory()
     .filter((e) => e.gameName.toLowerCase().startsWith(q))
     .slice(0, 6);

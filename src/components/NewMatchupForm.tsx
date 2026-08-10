@@ -76,7 +76,7 @@ export default function NewMatchupForm({
         <select
           value={lane}
           onChange={(e) => setLane(e.target.value as (typeof LANES)[number])}
-          className="rounded-lg border border-neutral-700 bg-neutral-950 px-3 py-2 text-sm text-white focus:border-sky-500 focus:outline-none"
+          className="rounded-lg border border-neutral-700 bg-neutral-950 px-3 py-2 text-sm text-white transition-colors focus:border-sky-500 focus:outline-none focus:ring-2 focus:ring-sky-500/20"
         >
           {LANES.map((l) => (
             <option key={l} value={l}>
@@ -100,10 +100,10 @@ export default function NewMatchupForm({
           onFocus={() => setFocused(true)}
           onBlur={() => setTimeout(() => setFocused(false), 100)}
           placeholder="チャンピオン名で検索..."
-          className="w-52 rounded-lg border border-neutral-700 bg-neutral-950 px-3 py-2 text-sm text-white placeholder-neutral-500 focus:border-sky-500 focus:outline-none"
+          className="w-52 rounded-lg border border-neutral-700 bg-neutral-950 px-3 py-2 text-sm text-white placeholder-neutral-500 transition-colors focus:border-sky-500 focus:outline-none focus:ring-2 focus:ring-sky-500/20"
         />
         {focused && suggestions.length > 0 && (
-          <ul className="absolute left-0 top-full z-10 mt-1 max-h-72 w-64 overflow-y-auto rounded-lg border border-neutral-700 bg-neutral-900 shadow-xl">
+          <ul className="absolute left-0 top-full z-10 mt-1 max-h-72 w-64 overflow-y-auto rounded-lg border border-neutral-700 bg-neutral-900 py-1 shadow-xl">
             {suggestions.map((c) => (
               <li key={c.id}>
                 <button
@@ -112,7 +112,7 @@ export default function NewMatchupForm({
                     e.preventDefault();
                     selectChampion(c);
                   }}
-                  className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-neutral-200 hover:bg-neutral-800"
+                  className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-neutral-200 transition-colors hover:bg-neutral-800"
                 >
                   <Image
                     src={c.iconUrl}
@@ -136,7 +136,7 @@ export default function NewMatchupForm({
       </div>
       <button
         type="submit"
-        className="rounded-lg bg-sky-600 px-4 py-2 text-sm font-medium text-white hover:bg-sky-500"
+        className="rounded-lg bg-sky-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-sky-500 active:bg-sky-700"
       >
         メモを書く
       </button>

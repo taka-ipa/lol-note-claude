@@ -26,6 +26,7 @@ import {
   type QueueCategoryId,
 } from "@/lib/queueCategories";
 import RiotIdInput from "@/components/RiotIdInput";
+import Spinner from "@/components/Spinner";
 import type { HistoryMatch, HistoryParticipant } from "@/app/api/riot/history/route";
 import type { BuildItem, ParticipantBuild } from "@/app/api/riot/timeline/route";
 import type { RuneTree } from "@/lib/riot";
@@ -183,7 +184,7 @@ function RankCard({ entry }: { entry: LeagueEntry | undefined }) {
   const colorClass = TIER_COLORS[entry.tier] ?? "text-neutral-300 border-neutral-600";
 
   return (
-    <div className="flex items-center gap-3 rounded-lg border border-neutral-800 bg-neutral-900 p-3">
+    <div className="flex items-center gap-3 rounded-lg border border-neutral-800 bg-neutral-900 p-3 shadow-sm">
       <RankEmblemIcon tier={entry.tier} />
       <div>
         <p className="mb-1 text-xs text-neutral-500">{label}</p>
@@ -349,7 +350,12 @@ function SkillOrderSection({
   abilities: ChampionAbilities | null;
 }) {
   if (!abilities) {
-    return <p className="text-xs text-neutral-500">読み込み中...</p>;
+    return (
+      <p className="flex items-center gap-1.5 text-xs text-neutral-500">
+        <Spinner className="h-3 w-3" />
+        読み込み中...
+      </p>
+    );
   }
   if (skills.length === 0) {
     return <p className="text-xs text-neutral-500">記録がありません</p>;
@@ -588,7 +594,10 @@ function MyBuildPanel({
           アイテムビルド
         </p>
         {buildState === "loading" && (
-          <p className="text-xs text-neutral-500">読み込み中...</p>
+          <p className="flex items-center gap-1.5 text-xs text-neutral-500">
+            <Spinner className="h-3 w-3" />
+            読み込み中...
+          </p>
         )}
         {buildState === "error" && (
           <p className="text-xs text-red-400">
@@ -603,7 +612,10 @@ function MyBuildPanel({
       <div>
         <p className="mb-2 text-xs font-bold text-neutral-300">スキル順</p>
         {buildState === "loading" && (
-          <p className="text-xs text-neutral-500">読み込み中...</p>
+          <p className="flex items-center gap-1.5 text-xs text-neutral-500">
+            <Spinner className="h-3 w-3" />
+            読み込み中...
+          </p>
         )}
         {Array.isArray(buildState) && (
           <SkillOrderSection skills={myBuild?.skills ?? []} abilities={abilities} />
@@ -655,10 +667,10 @@ function MatchDetail({
         <button
           type="button"
           onClick={() => onTabChange("overview")}
-          className={`rounded px-3 py-1 text-xs font-medium ${
+          className={`rounded px-3 py-1 text-xs font-medium transition-colors ${
             tab === "overview"
               ? "bg-sky-600 text-white"
-              : "text-neutral-400 hover:text-white"
+              : "text-neutral-400 hover:bg-neutral-700/50 hover:text-white"
           }`}
         >
           概要
@@ -669,10 +681,10 @@ function MatchDetail({
             onTabChange("build");
             onRequestBuild();
           }}
-          className={`rounded px-3 py-1 text-xs font-medium ${
+          className={`rounded px-3 py-1 text-xs font-medium transition-colors ${
             tab === "build"
               ? "bg-sky-600 text-white"
-              : "text-neutral-400 hover:text-white"
+              : "text-neutral-400 hover:bg-neutral-700/50 hover:text-white"
           }`}
         >
           ビルド
@@ -930,7 +942,7 @@ export default function SummonerSearch({
             <select
               value={platform}
               onChange={(e) => setPlatform(e.target.value as Platform)}
-              className="w-full rounded-xl border border-neutral-700 bg-neutral-900 px-4 py-2.5 text-sm text-neutral-300 focus:outline-none sm:w-auto sm:shrink-0 sm:rounded-full sm:border-0 sm:bg-transparent"
+              className="w-full rounded-xl border border-neutral-700 bg-neutral-900 px-4 py-2.5 text-sm text-neutral-300 transition-colors focus:outline-none sm:w-auto sm:shrink-0 sm:rounded-full sm:border-0 sm:bg-transparent"
             >
               {PLATFORMS.map((p) => (
                 <option
@@ -958,8 +970,9 @@ export default function SummonerSearch({
                 type="submit"
                 disabled={loading}
                 aria-label="検索"
-                className="flex shrink-0 items-center justify-center rounded-lg bg-sky-600 px-5 py-2 text-sm font-medium text-white hover:bg-sky-500 disabled:opacity-50 sm:rounded-full sm:px-6 sm:py-2.5"
+                className="flex shrink-0 items-center justify-center gap-1.5 rounded-lg bg-sky-600 px-5 py-2 text-sm font-medium text-white transition-colors hover:bg-sky-500 active:bg-sky-700 disabled:opacity-50 sm:rounded-full sm:px-6 sm:py-2.5"
               >
+                {loading && <Spinner className="h-3.5 w-3.5" />}
                 {loading ? "検索中..." : "検索"}
               </button>
             </div>
@@ -1023,7 +1036,7 @@ export default function SummonerSearch({
               <select
                 value={platform}
                 onChange={(e) => setPlatform(e.target.value as Platform)}
-                className="w-full rounded-lg border border-neutral-700 bg-neutral-900 px-3 py-2 text-sm text-white focus:border-sky-500 focus:outline-none sm:w-auto"
+                className="w-full rounded-lg border border-neutral-700 bg-neutral-900 px-3 py-2 text-sm text-white transition-colors focus:border-sky-500 focus:outline-none focus:ring-2 focus:ring-sky-500/20 sm:w-auto"
               >
                 {PLATFORMS.map((p) => (
                   <option key={p.value} value={p.value}>
@@ -1044,14 +1057,15 @@ export default function SummonerSearch({
                 onSelectSuggestion={handleSelectSuggestion}
                 platform={platform}
                 placeholder="サモナーネーム#タグ"
-                className="w-full rounded-lg border border-neutral-700 bg-neutral-900 px-3 py-2 text-sm text-white placeholder-neutral-500 focus:border-sky-500 focus:outline-none"
+                className="w-full rounded-lg border border-neutral-700 bg-neutral-900 px-3 py-2 text-sm text-white placeholder-neutral-500 transition-colors focus:border-sky-500 focus:outline-none focus:ring-2 focus:ring-sky-500/20"
               />
             </div>
             <button
               type="submit"
               disabled={loading}
-              className="rounded-lg bg-sky-600 px-5 py-2 text-sm font-medium text-white hover:bg-sky-500 disabled:opacity-50"
+              className="flex items-center gap-1.5 rounded-lg bg-sky-600 px-5 py-2 text-sm font-medium text-white transition-colors hover:bg-sky-500 active:bg-sky-700 disabled:opacity-50"
             >
+              {loading && <Spinner className="h-3.5 w-3.5" />}
               {loading ? "検索中..." : "検索"}
             </button>
           </form>
@@ -1072,7 +1086,7 @@ export default function SummonerSearch({
               type="button"
               disabled={loading}
               onClick={() => handleCategoryClick(tab.id)}
-              className={`border-b-2 px-3 py-2 text-sm font-medium whitespace-nowrap transition disabled:opacity-50 ${
+              className={`border-b-2 px-3 py-2 text-sm font-medium whitespace-nowrap transition-colors disabled:opacity-50 ${
                 activeCategory === tab.id
                   ? "border-sky-500 text-white"
                   : "border-transparent text-neutral-400 hover:text-white"
@@ -1086,7 +1100,7 @@ export default function SummonerSearch({
               type="button"
               disabled={loading}
               onClick={() => setDropdownOpen((o) => !o)}
-              className={`flex items-center gap-1 border-b-2 px-3 py-2 text-sm font-medium whitespace-nowrap transition disabled:opacity-50 ${
+              className={`flex items-center gap-1 border-b-2 px-3 py-2 text-sm font-medium whitespace-nowrap transition-colors disabled:opacity-50 ${
                 DROPDOWN_TABS.some((t) => t.id === activeCategory)
                   ? "border-sky-500 text-white"
                   : "border-transparent text-neutral-400 hover:text-white"
@@ -1094,16 +1108,20 @@ export default function SummonerSearch({
             >
               {DROPDOWN_TABS.find((t) => t.id === activeCategory)?.label ??
                 "キュータイプ"}
-              <span className="text-xs">{dropdownOpen ? "▲" : "▼"}</span>
+              <span
+                className={`text-xs transition-transform ${dropdownOpen ? "rotate-180" : ""}`}
+              >
+                ▼
+              </span>
             </button>
             {dropdownOpen && (
-              <ul className="absolute left-0 top-full z-10 mt-1 min-w-[10rem] overflow-hidden rounded-lg border border-neutral-700 bg-neutral-900 shadow-xl">
+              <ul className="absolute left-0 top-full z-10 mt-1 min-w-[10rem] overflow-hidden rounded-lg border border-neutral-700 bg-neutral-900 py-1 shadow-xl">
                 {DROPDOWN_TABS.map((tab) => (
                   <li key={tab.id}>
                     <button
                       type="button"
                       onClick={() => handleCategoryClick(tab.id)}
-                      className={`block w-full px-4 py-2 text-left text-sm hover:bg-neutral-800 ${
+                      className={`block w-full px-4 py-2 text-left text-sm transition-colors hover:bg-neutral-800 ${
                         activeCategory === tab.id
                           ? "text-sky-400"
                           : "text-neutral-200"
@@ -1120,7 +1138,10 @@ export default function SummonerSearch({
       )}
 
       {(loading || categoryLoading) && (
-        <p className="mb-4 text-sm text-neutral-500">読み込み中...</p>
+        <p className="mb-4 flex items-center gap-2 text-sm text-neutral-500">
+          <Spinner className="h-4 w-4" />
+          読み込み中...
+        </p>
       )}
       {categoryError && (
         <p className="mb-4 text-sm text-red-400">
@@ -1187,7 +1208,7 @@ export default function SummonerSearch({
               return (
                 <div
                   key={m.matchId}
-                  className={`overflow-hidden rounded-lg border-l-4 ${
+                  className={`overflow-hidden rounded-lg border-l-4 shadow-sm transition-shadow hover:shadow-md ${
                     m.win
                       ? "border-sky-400 bg-sky-900/50"
                       : "border-red-400 bg-red-900/40"
@@ -1198,7 +1219,7 @@ export default function SummonerSearch({
                     onClick={() =>
                       setExpandedMatchId(isExpanded ? null : m.matchId)
                     }
-                    className="flex w-full flex-col gap-2 p-3 text-left hover:bg-white/5 sm:flex-row sm:items-center sm:gap-4"
+                    className="flex w-full flex-col gap-2 p-3 text-left transition-colors hover:bg-white/5 sm:flex-row sm:items-center sm:gap-4"
                   >
                     <div className="flex items-center gap-3 sm:contents">
                       <div className="w-14 shrink-0 sm:w-32">
@@ -1277,13 +1298,15 @@ export default function SummonerSearch({
                           <Link
                             href={`/matchup/${myChamp.id}/${m.lane}/${oppChamp.id}?from=${fromParam}`}
                             onClick={(e) => e.stopPropagation()}
-                            className="shrink-0 rounded-lg bg-neutral-800 px-3 py-1.5 text-xs font-medium text-white hover:bg-sky-600"
+                            className="shrink-0 rounded-lg bg-neutral-800 px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-sky-600"
                           >
                             メモを書く
                           </Link>
                         )}
-                        <span className="text-neutral-500">
-                          {isExpanded ? "▲" : "▼"}
+                        <span
+                          className={`text-neutral-500 transition-transform ${isExpanded ? "rotate-180" : ""}`}
+                        >
+                          ▼
                         </span>
                       </div>
                     </div>
