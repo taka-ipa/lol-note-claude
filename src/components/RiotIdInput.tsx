@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { Platform } from "@/lib/riot";
 import {
   matchByGameName,
@@ -27,12 +27,32 @@ export default function RiotIdInput({
   className: string;
 }) {
   const [focused, setFocused] = useState(false);
+  // The raw text the user is typing. Kept as local state (rather than always
+  // deriving `${gameName}#${tagLine}`) because that derivation collapses
+  // back to just `gameName` while tagLine is still empty — e.g. right after
+  // typing "#" with nothing after it yet — making "#" seem impossible to type.
+  const [rawValue, setRawValue] = useState(() =>
+    tagLine ? `${gameName}#${tagLine}` : gameName
+  );
+
+  // Re-sync when gameName/tagLine change from outside this input (selecting
+  // a suggestion, navigating to a different summoner, etc.) without clobbering
+  // in-progress typing that produces the same gameName/tagLine pair.
+  useEffect(() => {
+    const idx = rawValue.indexOf("#");
+    const currentGameName = idx === -1 ? rawValue : rawValue.slice(0, idx);
+    const currentTagLine = idx === -1 ? "" : rawValue.slice(idx + 1);
+    if (currentGameName !== gameName || currentTagLine !== tagLine) {
+      setRawValue(tagLine ? `${gameName}#${tagLine}` : gameName);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [gameName, tagLine]);
 
   const suggestions = focused ? matchByGameName(gameName) : [];
-  const value = tagLine ? `${gameName}#${tagLine}` : gameName;
 
   function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
     const v = e.target.value;
+    setRawValue(v);
     const idx = v.indexOf("#");
     if (idx === -1) {
       onGameNameChange(v);
@@ -47,7 +67,7 @@ export default function RiotIdInput({
     <div className="relative min-w-0 flex-1">
       <input
         type="text"
-        value={value}
+        value={rawValue}
         onChange={handleChange}
         onFocus={() => setFocused(true)}
         onBlur={() => setTimeout(() => setFocused(false), 100)}

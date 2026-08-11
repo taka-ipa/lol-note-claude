@@ -75,6 +75,20 @@ function apiKey(): string {
   return key;
 }
 
+const FRIENDLY_ERROR_MESSAGES: Record<number, string> = {
+  400: "リクエストが正しくありません。入力内容を確認してください。",
+  401: "Riot APIキーが無効です。管理者に確認してください。",
+  403: "Riot APIキーが無効、または有効期限切れです。管理者に確認してください。",
+  404: "該当するサモナーが見つかりませんでした。ゲーム名とタグ、リージョンを確認してください。",
+  429: "アクセスが集中しています。少し時間をおいてから再度お試しください。",
+};
+
+function friendlyRiotErrorMessage(status: number): string {
+  if (FRIENDLY_ERROR_MESSAGES[status]) return FRIENDLY_ERROR_MESSAGES[status];
+  if (status >= 500) return "Riot API側で問題が発生しています。しばらくしてから再度お試しください。";
+  return "Riot APIでエラーが発生しました。しばらくしてから再度お試しください。";
+}
+
 async function riotFetch<T>(url: string): Promise<T> {
   const res = await fetch(url, {
     headers: { "X-Riot-Token": apiKey() },
@@ -82,11 +96,11 @@ async function riotFetch<T>(url: string): Promise<T> {
     cache: "no-store",
   });
   if (!res.ok) {
+    // Log the raw Riot response server-side for debugging, but never show
+    // it to the client — it can include internal error payloads.
     const body = await res.text().catch(() => "");
-    throw new RiotApiError(
-      res.status,
-      `Riot API error ${res.status}: ${body || res.statusText}`
-    );
+    console.error(`Riot API error ${res.status} for ${url}: ${body}`);
+    throw new RiotApiError(res.status, friendlyRiotErrorMessage(res.status));
   }
   return res.json() as Promise<T>;
 }
