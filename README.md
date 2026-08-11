@@ -5,7 +5,7 @@
 - チャンピオンを検索して、自チャンプ×相手チャンプ×レーン単位でマッチアップメモを書ける
 - Riot ID で戦績を検索し、op.gg 風の履歴を表示
 - 履歴の各試合から、その対面カードのマッチアップメモ編集画面へ直接ジャンプできる
-- チャンピオンDBは Riot Data Dragon から取得してローカルDB(SQLite)に保存
+- チャンピオンDBは Riot Data Dragon から取得してPostgres(Neon)に保存
 
 ## セットアップ
 
@@ -29,7 +29,18 @@ RIOT_API_KEY="RGAPI-xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
 
 キー未設定でもチャンプ検索・マッチアップメモ機能は使えます(サモナー検索のみキーが必要)。
 
-### 3. DBのセットアップ & チャンピオンデータのシード
+### 3. DBの準備(Neon)
+
+1. https://console.neon.tech でプロジェクトを作成
+2. "Connection Details" から pooled connection と direct connection の2つの接続文字列を取得
+3. `.env` に貼り付け
+
+```
+DATABASE_URL="postgresql://...-pooler.../neondb?sslmode=require"   # pooled(アプリ用)
+DIRECT_URL="postgresql://.../neondb?sslmode=require"                # direct(マイグレーション用)
+```
+
+### 4. マイグレーション & チャンピオンデータのシード
 
 ```bash
 npx prisma migrate deploy
@@ -38,7 +49,7 @@ npm run seed
 
 `npm run seed` は Data Dragon から最新のチャンピオン一覧(日本語名込み)を取得してDBに保存します。パッチが更新されたら再実行してください。
 
-### 4. 開発サーバー起動
+### 5. 開発サーバー起動
 
 ```bash
 npm run dev
@@ -54,11 +65,10 @@ http://localhost:3000 を開く。
 ## 技術構成
 
 - Next.js (App Router) + TypeScript + Tailwind CSS
-- Prisma + SQLite (`@prisma/adapter-better-sqlite3`)
+- Prisma + PostgreSQL (Neon, `@prisma/adapter-neon`)
 - Riot Games API (Account-V1 / Summoner-V4 / Match-V5) をサーバー側(`/api/riot/history`)でラップし、APIキーをクライアントに露出させない構成
 
 ## 今後の拡張候補
 
 - サモナー検索結果のキャッシュ(DBに保存してレート制限を回避)
 - マッチアップメモへのタグ付け・検索
-- 本番用サーバーへのデプロイ(Vercel + マネージドDBなど)

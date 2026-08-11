@@ -8,7 +8,10 @@ export default defineConfig({
   migrations: {
     path: "prisma/migrations",
   },
+  // Prisma CLI (migrate/studio) talks to Postgres directly rather than
+  // through Neon's pooled connection, since DDL over a pooler is unreliable.
+  // The running app uses DATABASE_URL (pooled) via src/lib/prisma.ts instead.
   datasource: {
-    url: process.env["DATABASE_URL"],
+    url: process.env["DIRECT_URL"] ?? process.env["DATABASE_URL"],
   },
 });
