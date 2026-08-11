@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import { toKatakana } from "@/lib/kana";
 
 type Champion = {
   id: string;
@@ -21,7 +22,7 @@ export default function ChampionGrid({
   const [query, setQuery] = useState("");
 
   const filtered = useMemo(() => {
-    const q = query.trim().toLowerCase();
+    const q = toKatakana(query.trim()).toLowerCase();
     if (!q) return champions;
     return champions.filter(
       (c) =>
