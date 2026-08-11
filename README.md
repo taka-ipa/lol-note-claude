@@ -18,9 +18,9 @@ npm install
 ### 2. Riot API キーの取得(戦績検索に必要)
 
 1. https://developer.riotgames.com/ にアクセスし、Riotアカウントでサインイン
-2. ダッシュボードに表示される "Development API Key" をコピー
-   - 開発用キーは**24時間で失効**します。切れたら発行し直して `.env` を更新してください
-   - 継続的に使いたい場合は同じダッシュボードから Personal API Key を申請できます
+2. Personal API Key(または Production API Key)を "Register Product" から申請してキーを取得
+   - 開発用の "Development API Key" は**24時間で失効**するため、継続運用には不向き
+   - Personal API Key は審査プロセス無しで取得でき、失効しない(小規模なプライベート利用向け)
 3. プロジェクト直下の `.env` を開き、`RIOT_API_KEY` に貼り付け
 
 ```

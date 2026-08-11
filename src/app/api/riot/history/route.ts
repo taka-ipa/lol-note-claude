@@ -8,6 +8,7 @@ import {
   getRuneIconMaps,
   getSummonerByPuuid,
   getSummonerSpellIconMap,
+  mapWithConcurrency,
   normalizeLane,
   RiotApiError,
   type LeagueEntry,
@@ -93,8 +94,10 @@ export async function GET(req: NextRequest) {
       getRuneIconMaps(ddragonVersion),
     ]);
 
-    const matches = await Promise.all(
-      matchIds.map(async (matchId): Promise<HistoryMatch | null> => {
+    const matches = await mapWithConcurrency(
+      matchIds,
+      5,
+      async (matchId): Promise<HistoryMatch | null> => {
         const match = await getMatchById(matchId, platform).catch(() => null);
         if (!match) return null;
 
@@ -185,7 +188,7 @@ export async function GET(req: NextRequest) {
             : null,
           participants,
         };
-      })
+      }
     );
 
     return NextResponse.json({

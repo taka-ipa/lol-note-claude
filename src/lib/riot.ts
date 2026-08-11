@@ -91,6 +91,30 @@ async function riotFetch<T>(url: string): Promise<T> {
   return res.json() as Promise<T>;
 }
 
+// Runs `fn` over `items` with at most `limit` calls in flight at once, so a
+// single history search doesn't burst past Riot's per-second rate limit
+// (e.g. fetching 20 match details for one search).
+export async function mapWithConcurrency<T, R>(
+  items: T[],
+  limit: number,
+  fn: (item: T) => Promise<R>
+): Promise<R[]> {
+  const results: R[] = new Array(items.length);
+  let nextIndex = 0;
+
+  async function worker() {
+    while (nextIndex < items.length) {
+      const i = nextIndex++;
+      results[i] = await fn(items[i]);
+    }
+  }
+
+  await Promise.all(
+    Array.from({ length: Math.min(limit, items.length) }, worker)
+  );
+  return results;
+}
+
 export type RiotAccount = {
   puuid: string;
   gameName: string;
