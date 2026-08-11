@@ -766,7 +766,7 @@ function SummonerNotFound({
 
   return (
     <div className="mx-auto flex w-full max-w-md flex-col items-center gap-4 rounded-2xl border border-neutral-800 bg-neutral-900 px-6 py-10 text-center">
-      <div className="relative flex h-20 w-20 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-sky-500/15 to-emerald-500/15">
+      <div className="relative flex h-20 w-20 shrink-0 items-center justify-center rounded-full bg-white">
         <svg viewBox="0 0 36 36" className="h-11 w-11">
           <circle
             cx="15"
