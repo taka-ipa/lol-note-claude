@@ -752,6 +752,64 @@ function MatchDetail({
   );
 }
 
+function SummonerNotFound({
+  gameName,
+  tagLine,
+  platform,
+}: {
+  gameName: string;
+  tagLine: string;
+  platform: Platform;
+}) {
+  const platformLabel =
+    PLATFORMS.find((p) => p.value === platform)?.label ?? platform;
+
+  return (
+    <div className="mx-auto flex w-full max-w-md flex-col items-center gap-4 rounded-2xl border border-neutral-800 bg-neutral-900 px-6 py-10 text-center">
+      <div className="relative flex h-20 w-20 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-sky-500/15 to-emerald-500/15">
+        <svg viewBox="0 0 36 36" className="h-11 w-11">
+          <circle
+            cx="15"
+            cy="15"
+            r="10"
+            fill="none"
+            stroke="url(#not-found-ring)"
+            strokeWidth="2.5"
+          />
+          <path
+            d="M22.5 22.5L31 31"
+            stroke="url(#not-found-ring)"
+            strokeWidth="2.5"
+            strokeLinecap="round"
+          />
+          <path
+            d="M11.5 11.5L18.5 18.5M18.5 11.5L11.5 18.5"
+            stroke="#f87171"
+            strokeWidth="2.2"
+            strokeLinecap="round"
+          />
+          <defs>
+            <linearGradient id="not-found-ring" x1="2" y1="2" x2="31" y2="31">
+              <stop offset="0" stopColor="#38bdf8" />
+              <stop offset="1" stopColor="#34d399" />
+            </linearGradient>
+          </defs>
+        </svg>
+      </div>
+      <div>
+        <p className="text-base font-bold text-white sm:text-lg">
+          「{gameName}
+          <span className="text-neutral-500">#{tagLine}</span>」が見つかりませんでした
+        </p>
+        <p className="mt-2 text-sm text-neutral-400">
+          {platformLabel}にこのRiot
+          IDのプレイヤーが見つかりません。ゲーム名・タグ・リージョンが正しいか、上の検索欄で確認してみてください。
+        </p>
+      </div>
+    </div>
+  );
+}
+
 type InitialSearch = { platform: Platform; gameName: string; tagLine: string };
 
 export default function SummonerSearch({
@@ -772,6 +830,7 @@ export default function SummonerSearch({
   const [tagLine, setTagLine] = useState(initial?.tagLine ?? "");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [errorStatus, setErrorStatus] = useState<number | null>(null);
   const [data, setData] = useState<HistoryResponse | null>(null);
   const [expandedMatchId, setExpandedMatchId] = useState<string | null>(null);
   const [matchTab, setMatchTab] = useState<Record<string, "overview" | "build">>(
@@ -794,6 +853,7 @@ export default function SummonerSearch({
     setRankedCache({});
     setLoading(true);
     setError(null);
+    setErrorStatus(null);
     setData(null);
     setExpandedMatchId(null);
     setMatchTab({});
@@ -807,6 +867,7 @@ export default function SummonerSearch({
       const json = await res.json();
       if (!res.ok) {
         setError(json.error ?? "検索に失敗しました");
+        setErrorStatus(res.status);
         return;
       }
       setData(json);
@@ -859,6 +920,7 @@ export default function SummonerSearch({
     const trimmedTagLine = tagLine.trim().replace(/^#/, "");
     if (!trimmedGameName || !trimmedTagLine) {
       setError("ゲーム名とタグの両方を入力してください");
+      setErrorStatus(null);
       return;
     }
     router.push(summonerUrl(platform, trimmedGameName, trimmedTagLine));
@@ -985,10 +1047,18 @@ export default function SummonerSearch({
           </div>
 
           {error && (
-            <div className="mt-6 w-full max-w-2xl px-4 text-sm text-red-300">
-              <div className="rounded-lg border border-red-800 bg-red-950/50 p-3">
-                {error}
-              </div>
+            <div className="mt-6 w-full max-w-2xl px-4">
+              {errorStatus === 404 && lastSearched ? (
+                <SummonerNotFound
+                  gameName={lastSearched.gameName}
+                  tagLine={lastSearched.tagLine}
+                  platform={lastSearched.platform}
+                />
+              ) : (
+                <div className="rounded-lg border border-red-800 bg-red-950/50 p-3 text-sm text-red-300">
+                  {error}
+                </div>
+              )}
             </div>
           )}
 
@@ -1071,8 +1141,18 @@ export default function SummonerSearch({
           </form>
 
           {error && (
-            <div className="mb-4 rounded-lg border border-red-800 bg-red-950/50 p-3 text-sm text-red-300">
-              {error}
+            <div className="mb-4">
+              {errorStatus === 404 && lastSearched ? (
+                <SummonerNotFound
+                  gameName={lastSearched.gameName}
+                  tagLine={lastSearched.tagLine}
+                  platform={lastSearched.platform}
+                />
+              ) : (
+                <div className="rounded-lg border border-red-800 bg-red-950/50 p-3 text-sm text-red-300">
+                  {error}
+                </div>
+              )}
             </div>
           )}
         </>
