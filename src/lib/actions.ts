@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import type { Lane } from "@/lib/lane";
 
@@ -10,16 +11,23 @@ export async function saveMatchupMemo(
   lane: Lane,
   memo: string
 ) {
+  const session = await auth();
+  const userId = session?.user?.id;
+  if (!userId) {
+    throw new Error("ログインしてください");
+  }
+
   await prisma.matchupMemo.upsert({
     where: {
-      myChampionId_opponentChampionId_lane: {
+      userId_myChampionId_opponentChampionId_lane: {
+        userId,
         myChampionId,
         opponentChampionId,
         lane,
       },
     },
     update: { memo },
-    create: { myChampionId, opponentChampionId, lane, memo },
+    create: { userId, myChampionId, opponentChampionId, lane, memo },
   });
 
   revalidatePath(`/champions/${myChampionId}`);

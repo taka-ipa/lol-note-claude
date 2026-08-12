@@ -40,7 +40,27 @@ DATABASE_URL="postgresql://...-pooler.../neondb?sslmode=require"   # pooled(ア�
 DIRECT_URL="postgresql://.../neondb?sslmode=require"                # direct(マイグレーション用)
 ```
 
-### 4. マイグレーション & チャンピオンデータのシード
+### 4. ログイン(Auth.js)の設定
+
+マッチアップメモはユーザーごとに分離されており、Google または Discord でのログインが必要です。
+
+1. `.env` に `AUTH_SECRET` を設定(セッション暗号化用のランダムな秘密鍵)
+
+```bash
+openssl rand -base64 33
+```
+
+2. Google でログインさせたい場合: [Google Cloud Console](https://console.cloud.google.com/apis/credentials) で OAuth クライアントIDを作成
+   - アプリケーションの種類: ウェブアプリケーション
+   - 承認済みのリダイレクトURI: `http://localhost:3000/api/auth/callback/google`(本番では `https://<デプロイ先のドメイン>/api/auth/callback/google` も追加)
+   - 発行された Client ID / Client Secret を `.env` の `AUTH_GOOGLE_ID` / `AUTH_GOOGLE_SECRET` に貼り付け
+3. Discord でログインさせたい場合: [Discord Developer Portal](https://discord.com/developers/applications) で新規アプリを作成
+   - OAuth2 設定のリダイレクトURI: `http://localhost:3000/api/auth/callback/discord`(本番では `https://<デプロイ先のドメイン>/api/auth/callback/discord` も追加)
+   - 発行された Client ID / Client Secret を `.env` の `AUTH_DISCORD_ID` / `AUTH_DISCORD_SECRET` に貼り付け
+
+Google・Discordどちらか片方だけの設定でも動作します。
+
+### 5. マイグレーション & チャンピオンデータのシード
 
 ```bash
 npx prisma migrate deploy
@@ -49,7 +69,7 @@ npm run seed
 
 `npm run seed` は Data Dragon から最新のチャンピオン一覧(日本語名込み)を取得してDBに保存します。パッチが更新されたら再実行してください。
 
-### 5. 開発サーバー起動
+### 6. 開発サーバー起動
 
 ```bash
 npm run dev
@@ -59,6 +79,7 @@ http://localhost:3000 を開く。
 
 ## 使い方
 
+- **ログイン**: 右上の「Googleでログイン」または「Discordでログイン」からログイン。マッチアップメモはログインユーザーごとに保存され、他のユーザーからは見えません
 - **チャンプ検索**: `/champions` でチャンピオンを検索 → 詳細ページでレーンと相手チャンプを選んで「メモを書く」→ マークダウン的なフリーテキストでメモを保存
 - **サモナー検索**: `/summoner` でリージョンと Riot ID (`ゲーム名#タグ`) を入力して検索。各試合の行から、対面(同レーンの敵チャンプ)とのマッチアップメモへワンクリックで遷移
 
@@ -66,6 +87,7 @@ http://localhost:3000 を開く。
 
 - Next.js (App Router) + TypeScript + Tailwind CSS
 - Prisma + PostgreSQL (Neon, `@prisma/adapter-neon`)
+- Auth.js (NextAuth v5) + `@auth/prisma-adapter` によるログイン(Google / Discord)
 - Riot Games API (Account-V1 / Summoner-V4 / Match-V5) をサーバー側(`/api/riot/history`)でラップし、APIキーをクライアントに露出させない構成
 
 ## 今後の拡張候補

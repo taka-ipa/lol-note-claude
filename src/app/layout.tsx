@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import Link from "next/link";
+import AuthStatus from "@/components/AuthStatus";
 import NavLinks from "@/components/NavLinks";
 import "./globals.css";
 
@@ -40,6 +41,9 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
               LoL Matchup <span className="text-sky-400">Note</span>
             </Link>
             <NavLinks />
+            <div className="ml-auto">
+              <AuthStatus />
+            </div>
           </div>
         </header>
         <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-6">

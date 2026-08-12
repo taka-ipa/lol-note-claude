@@ -1,9 +1,11 @@
 import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { LANES, LANE_LABELS, type Lane } from "@/lib/lane";
 import MemoEditor from "@/components/MemoEditor";
+import SignInButtons from "@/components/SignInButtons";
 
 function safeInternalPath(path: string | undefined): string | null {
   if (!path) return null;
@@ -25,21 +27,31 @@ export default async function MatchupPage({
 
   if (!LANES.includes(lane as Lane)) notFound();
 
+  const session = await auth();
+  const userId = session?.user?.id;
+
   const [myChampion, opponentChampion, memo] = await Promise.all([
     prisma.champion.findUnique({ where: { id: myId } }),
     prisma.champion.findUnique({ where: { id: oppId } }),
-    prisma.matchupMemo.findUnique({
-      where: {
-        myChampionId_opponentChampionId_lane: {
-          myChampionId: myId,
-          opponentChampionId: oppId,
-          lane: lane as Lane,
-        },
-      },
-    }),
+    userId
+      ? prisma.matchupMemo.findUnique({
+          where: {
+            userId_myChampionId_opponentChampionId_lane: {
+              userId,
+              myChampionId: myId,
+              opponentChampionId: oppId,
+              lane: lane as Lane,
+            },
+          },
+        })
+      : Promise.resolve(null),
   ]);
 
   if (!myChampion || !opponentChampion) notFound();
+
+  const currentPath = `/matchup/${myId}/${lane}/${oppId}${
+    returnTo ? `?from=${encodeURIComponent(returnTo)}` : ""
+  }`;
 
   return (
     <div>
@@ -94,12 +106,21 @@ export default async function MatchupPage({
         </div>
       </div>
 
-      <MemoEditor
-        myChampionId={myChampion.id}
-        opponentChampionId={opponentChampion.id}
-        lane={lane as Lane}
-        initialMemo={memo?.memo ?? ""}
-      />
+      {userId ? (
+        <MemoEditor
+          myChampionId={myChampion.id}
+          opponentChampionId={opponentChampion.id}
+          lane={lane as Lane}
+          initialMemo={memo?.memo ?? ""}
+        />
+      ) : (
+        <div className="flex flex-col items-center gap-3 rounded-xl border border-neutral-800 bg-neutral-900 p-8 text-center shadow-sm">
+          <p className="text-sm text-neutral-400">
+            マッチアップメモを書く・見るにはログインしてください。
+          </p>
+          <SignInButtons callbackUrl={currentPath} />
+        </div>
+      )}
     </div>
   );
 }

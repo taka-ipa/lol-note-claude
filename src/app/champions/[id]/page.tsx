@@ -1,9 +1,11 @@
 import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { LANES, LANE_LABELS } from "@/lib/lane";
 import NewMatchupForm from "@/components/NewMatchupForm";
+import SignInButtons from "@/components/SignInButtons";
 
 export default async function ChampionDetailPage({
   params,
@@ -11,6 +13,8 @@ export default async function ChampionDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
+  const session = await auth();
+  const userId = session?.user?.id;
 
   const [champion, allChampions, memos] = await Promise.all([
     prisma.champion.findUnique({ where: { id } }),
@@ -18,11 +22,13 @@ export default async function ChampionDetailPage({
       orderBy: { nameJa: "asc" },
       select: { id: true, nameJa: true, nameEn: true, iconUrl: true },
     }),
-    prisma.matchupMemo.findMany({
-      where: { myChampionId: id },
-      include: { opponentChampion: true },
-      orderBy: [{ lane: "asc" }, { updatedAt: "desc" }],
-    }),
+    userId
+      ? prisma.matchupMemo.findMany({
+          where: { myChampionId: id, userId },
+          include: { opponentChampion: true },
+          orderBy: [{ lane: "asc" }, { updatedAt: "desc" }],
+        })
+      : Promise.resolve([]),
   ]);
 
   if (!champion) notFound();
@@ -60,7 +66,16 @@ export default async function ChampionDetailPage({
         <h2 className="mb-3 text-sm font-semibold text-neutral-200">
           マッチアップを追加
         </h2>
-        <NewMatchupForm myChampionId={champion.id} champions={allChampions} />
+        {userId ? (
+          <NewMatchupForm myChampionId={champion.id} champions={allChampions} />
+        ) : (
+          <div className="flex flex-col items-center gap-3 py-2 text-center">
+            <p className="text-sm text-neutral-400">
+              マッチアップメモはログインすると自分専用のメモとして使えます。
+            </p>
+            <SignInButtons callbackUrl={`/champions/${champion.id}`} />
+          </div>
+        )}
       </div>
 
       <div className="space-y-6">
@@ -105,7 +120,7 @@ export default async function ChampionDetailPage({
             </div>
           )
         )}
-        {memos.length === 0 && (
+        {userId && memos.length === 0 && (
           <p className="rounded-lg border border-dashed border-neutral-800 p-6 text-center text-sm text-neutral-500">
             まだマッチアップメモがありません。上のフォームから追加してください。
           </p>
