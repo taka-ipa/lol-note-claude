@@ -26,7 +26,6 @@ import {
   type QueueCategoryId,
 } from "@/lib/queueCategories";
 import RiotIdInput from "@/components/RiotIdInput";
-import SignInButtons from "@/components/SignInButtons";
 import Spinner from "@/components/Spinner";
 import type { HistoryMatch, HistoryParticipant } from "@/app/api/riot/history/route";
 import type { BuildItem, ParticipantBuild } from "@/app/api/riot/timeline/route";
@@ -989,11 +988,10 @@ export default function SummonerSearch({
   return (
     <div>
       {!isLoggedIn && (
-        <div className="mb-4 flex flex-col items-center gap-2 rounded-xl border border-neutral-800 bg-neutral-900/60 p-3 text-center text-sm text-neutral-400 sm:flex-row sm:justify-between sm:text-left">
+        <div className="mb-4 rounded-xl border border-neutral-800 bg-neutral-900/60 p-3 text-center text-sm text-neutral-400">
           <p>
-            マッチアップメモは、あなただけが見られる個人用のメモです。書く・見るにはログインしてください。
+            マッチアップメモは、あなただけが見られる個人用のメモです。書く・見るには右上からログインしてください。
           </p>
-          <SignInButtons compact />
         </div>
       )}
       {showHero ? (
