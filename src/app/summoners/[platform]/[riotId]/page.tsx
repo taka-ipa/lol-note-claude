@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { PLATFORMS, type Platform } from "@/lib/riot";
 import SummonerSearch from "@/components/SummonerSearch";
@@ -45,9 +46,12 @@ export default async function SummonerPage({
   const parsed = parseRiotIdSlug(decodeURIComponent(riotId));
   if (!parsed) notFound();
 
-  const champions = await prisma.champion.findMany({
-    select: { id: true, nameJa: true, iconUrl: true },
-  });
+  const [session, champions] = await Promise.all([
+    auth(),
+    prisma.champion.findMany({
+      select: { id: true, nameJa: true, iconUrl: true },
+    }),
+  ]);
   const championMap = Object.fromEntries(champions.map((c) => [c.id, c]));
 
   return (
@@ -58,6 +62,7 @@ export default async function SummonerPage({
         gameName: parsed.gameName,
         tagLine: parsed.tagLine,
       }}
+      isLoggedIn={!!session?.user}
     />
   );
 }

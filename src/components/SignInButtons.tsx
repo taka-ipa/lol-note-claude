@@ -1,4 +1,4 @@
-import { signIn } from "@/auth";
+import { signInWithDiscord, signInWithGoogle } from "@/lib/authActions";
 
 export default function SignInButtons({
   callbackUrl,
@@ -13,22 +13,12 @@ export default function SignInButtons({
 
   return (
     <div className="flex flex-wrap items-center justify-center gap-2">
-      <form
-        action={async () => {
-          "use server";
-          await signIn("google", { redirectTo: callbackUrl });
-        }}
-      >
+      <form action={signInWithGoogle.bind(null, callbackUrl)}>
         <button type="submit" className={buttonClassName}>
           Googleでログイン
         </button>
       </form>
-      <form
-        action={async () => {
-          "use server";
-          await signIn("discord", { redirectTo: callbackUrl });
-        }}
-      >
+      <form action={signInWithDiscord.bind(null, callbackUrl)}>
         <button type="submit" className={buttonClassName}>
           Discordでログイン
         </button>

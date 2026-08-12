@@ -26,6 +26,7 @@ import {
   type QueueCategoryId,
 } from "@/lib/queueCategories";
 import RiotIdInput from "@/components/RiotIdInput";
+import SignInButtons from "@/components/SignInButtons";
 import Spinner from "@/components/Spinner";
 import type { HistoryMatch, HistoryParticipant } from "@/app/api/riot/history/route";
 import type { BuildItem, ParticipantBuild } from "@/app/api/riot/timeline/route";
@@ -816,10 +817,12 @@ export default function SummonerSearch({
   championMap,
   hero = false,
   initial,
+  isLoggedIn = false,
 }: {
   championMap: Record<string, ChampionInfo>;
   hero?: boolean;
   initial?: InitialSearch;
+  isLoggedIn?: boolean;
 }) {
   const router = useRouter();
   const [platform, setPlatform] = useState<Platform>(initial?.platform ?? "jp1");
@@ -985,6 +988,14 @@ export default function SummonerSearch({
 
   return (
     <div>
+      {!isLoggedIn && (
+        <div className="mb-4 flex flex-col items-center gap-2 rounded-xl border border-neutral-800 bg-neutral-900/60 p-3 text-center text-sm text-neutral-400 sm:flex-row sm:justify-between sm:text-left">
+          <p>
+            マッチアップメモは、あなただけが見られる個人用のメモです。書く・見るにはログインしてください。
+          </p>
+          <SignInButtons compact />
+        </div>
+      )}
       {showHero ? (
         <div className="flex flex-col items-center py-10 text-center sm:py-16">
           <h1 className="text-3xl font-extrabold tracking-tight text-white sm:text-5xl">
@@ -1374,7 +1385,7 @@ export default function SummonerSearch({
                         </div>
                       )}
                       <div className="flex shrink-0 items-center gap-3">
-                        {myChamp && oppChamp && m.lane && (
+                        {isLoggedIn && myChamp && oppChamp && m.lane && (
                           <Link
                             href={`/matchup/${myChamp.id}/${m.lane}/${oppChamp.id}?from=${fromParam}`}
                             onClick={(e) => e.stopPropagation()}
