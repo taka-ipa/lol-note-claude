@@ -207,6 +207,7 @@ function ParticipantRow({
   icons,
   isMe,
   maxDamage,
+  gameDuration,
 }: {
   p: HistoryParticipant;
   championMap: Record<string, ChampionInfo>;
@@ -214,6 +215,7 @@ function ParticipantRow({
   icons: IconMaps;
   isMe: boolean;
   maxDamage: number;
+  gameDuration: number;
 }) {
   const champ = champIcon(championMap, p.championName);
   const kda = p.deaths === 0 ? "Perfect" : ((p.kills + p.assists) / p.deaths).toFixed(2);
@@ -249,7 +251,9 @@ function ParticipantRow({
         {p.kills}/{p.deaths}/{p.assists}
         <span className="ml-1 text-neutral-500">({kda})</span>
       </span>
-      <span className="w-14 text-neutral-400">CS {p.cs}</span>
+      <span className="w-24 text-neutral-400">
+        CS {p.cs} ({(p.cs / (gameDuration / 60)).toFixed(1)}/分)
+      </span>
       <span className="w-16 text-neutral-400">
         {p.goldEarned.toLocaleString()}g
       </span>
@@ -285,7 +289,7 @@ function ParticipantHeaderRow() {
       </div>
       <span className="w-24 truncate">サモナー名</span>
       <span className="w-24">K/D/A (KDA)</span>
-      <span className="w-14">CS</span>
+      <span className="w-24">CS</span>
       <span className="w-16">ゴールド</span>
       <span className="w-24">与ダメージ</span>
       <span>アイテム</span>
@@ -693,7 +697,7 @@ function MatchDetail({
 
       {tab === "overview" && (
         <div className="overflow-x-auto">
-          <div className="min-w-[640px] space-y-3">
+          <div className="min-w-[700px] space-y-3">
             <ParticipantHeaderRow />
             <div>
               <p className="mb-1 text-xs font-semibold text-sky-400">
@@ -709,6 +713,7 @@ function MatchDetail({
                     icons={icons}
                     isMe={p.puuid === myPuuid}
                     maxDamage={maxDamage}
+                    gameDuration={match.gameDuration}
                   />
                 ))}
               </div>
@@ -727,6 +732,7 @@ function MatchDetail({
                     icons={icons}
                     isMe={p.puuid === myPuuid}
                     maxDamage={maxDamage}
+                    gameDuration={match.gameDuration}
                   />
                 ))}
               </div>
