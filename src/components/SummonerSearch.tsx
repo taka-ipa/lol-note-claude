@@ -1152,7 +1152,7 @@ export default function SummonerSearch({
       const res = await fetch(
         `/api/riot/history?platform=${p}&gameName=${encodeURIComponent(
           gameName
-        )}&tagLine=${encodeURIComponent(tagLine)}&count=20`
+        )}&tagLine=${encodeURIComponent(tagLine)}&count=25`
       );
       const json = await res.json();
       if (!res.ok) {
@@ -1182,7 +1182,7 @@ export default function SummonerSearch({
       const res = await fetch(
         `/api/riot/history?platform=${lastSearched.platform}&gameName=${encodeURIComponent(
           lastSearched.gameName
-        )}&tagLine=${encodeURIComponent(lastSearched.tagLine)}&count=20&queueId=${queueId}`
+        )}&tagLine=${encodeURIComponent(lastSearched.tagLine)}&count=25&queueId=${queueId}`
       );
       const json = await res.json();
       if (!res.ok) {
