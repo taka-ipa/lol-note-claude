@@ -1,11 +1,11 @@
 "use client";
 
-import { Fragment, useEffect, useState } from "react";
+import { Fragment, useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { PLATFORMS, type Platform } from "@/lib/riot";
-import { LANE_LABELS, type Lane } from "@/lib/lane";
+import { LANES, LANE_LABELS, type Lane } from "@/lib/lane";
 import {
   QUEUE_LABELS,
   TIER_COLORS,
@@ -63,6 +63,375 @@ type BuildState = ParticipantBuild[] | "loading" | "error";
 
 function champIcon(map: Record<string, ChampionInfo>, championName: string) {
   return map[championName];
+}
+
+type ChampionStat = {
+  championName: string;
+  games: number;
+  wins: number;
+  losses: number;
+  winRate: number;
+  avgKills: number;
+  avgDeaths: number;
+  avgAssists: number;
+  kda: number;
+  avgCsPerMin: number;
+};
+
+function computeChampionStats(matches: HistoryMatch[]): ChampionStat[] {
+  const totals = new Map<
+    string,
+    {
+      games: number;
+      wins: number;
+      kills: number;
+      deaths: number;
+      assists: number;
+      csPerMinSum: number;
+    }
+  >();
+  for (const m of matches) {
+    const cur = totals.get(m.championName) ?? {
+      games: 0,
+      wins: 0,
+      kills: 0,
+      deaths: 0,
+      assists: 0,
+      csPerMinSum: 0,
+    };
+    cur.games += 1;
+    if (m.win) cur.wins += 1;
+    cur.kills += m.kills;
+    cur.deaths += m.deaths;
+    cur.assists += m.assists;
+    cur.csPerMinSum += m.cs / (m.gameDuration / 60);
+    totals.set(m.championName, cur);
+  }
+  return Array.from(totals.entries())
+    .map(([championName, v]) => ({
+      championName,
+      games: v.games,
+      wins: v.wins,
+      losses: v.games - v.wins,
+      winRate: Math.round((v.wins / v.games) * 100),
+      avgKills: v.kills / v.games,
+      avgDeaths: v.deaths / v.games,
+      avgAssists: v.assists / v.games,
+      kda: v.deaths === 0 ? Infinity : (v.kills + v.assists) / v.deaths,
+      avgCsPerMin: v.csPerMinSum / v.games,
+    }))
+    .sort((a, b) => b.games - a.games);
+}
+
+function formatKda(kda: number) {
+  return kda === Infinity ? "Perfect" : `${kda.toFixed(2)}:1`;
+}
+
+const EMPTY_LANE_COUNTS: Record<Lane, number> = {
+  TOP: 0,
+  JUNGLE: 0,
+  MID: 0,
+  ADC: 0,
+  SUPPORT: 0,
+};
+
+type RecentSummary = {
+  games: number;
+  wins: number;
+  losses: number;
+  winRate: number;
+  avgKills: number;
+  avgDeaths: number;
+  avgAssists: number;
+  kda: number;
+  champions: ChampionStat[];
+  laneCounts: Record<Lane, number>;
+};
+
+function computeRecentSummary(
+  matches: HistoryMatch[],
+  recentCount: number
+): RecentSummary {
+  const recent = matches.slice(0, recentCount);
+  const games = recent.length;
+  const wins = recent.filter((m) => m.win).length;
+  const kills = recent.reduce((s, m) => s + m.kills, 0);
+  const deaths = recent.reduce((s, m) => s + m.deaths, 0);
+  const assists = recent.reduce((s, m) => s + m.assists, 0);
+  const laneCounts = { ...EMPTY_LANE_COUNTS };
+  for (const m of recent) {
+    if (m.lane) laneCounts[m.lane] += 1;
+  }
+  return {
+    games,
+    wins,
+    losses: games - wins,
+    winRate: games > 0 ? Math.round((wins / games) * 100) : 0,
+    avgKills: games > 0 ? kills / games : 0,
+    avgDeaths: games > 0 ? deaths / games : 0,
+    avgAssists: games > 0 ? assists / games : 0,
+    kda: deaths === 0 ? Infinity : (kills + assists) / deaths,
+    champions: computeChampionStats(recent),
+    laneCounts,
+  };
+}
+
+function WinRateDonut({ winRate, size = 76 }: { winRate: number; size?: number }) {
+  const radius = size / 2 - 8;
+  const cx = size / 2;
+  const cy = size / 2;
+  const circumference = 2 * Math.PI * radius;
+  const winLength = (winRate / 100) * circumference;
+  return (
+    <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} className="shrink-0">
+      <circle cx={cx} cy={cy} r={radius} fill="none" stroke="#f87171" strokeWidth="8" />
+      <circle
+        cx={cx}
+        cy={cy}
+        r={radius}
+        fill="none"
+        stroke="#38bdf8"
+        strokeWidth="8"
+        strokeDasharray={`${winLength} ${circumference - winLength}`}
+        strokeLinecap="round"
+        transform={`rotate(-90 ${cx} ${cy})`}
+      />
+      <text
+        x={cx}
+        y={cy}
+        textAnchor="middle"
+        dominantBaseline="central"
+        fill="white"
+        fontSize="15"
+        fontWeight="700"
+      >
+        {winRate}%
+      </text>
+    </svg>
+  );
+}
+
+const LANE_SHORT_LABELS: Record<Lane, string> = {
+  TOP: "TOP",
+  JUNGLE: "JG",
+  MID: "MID",
+  ADC: "ADC",
+  SUPPORT: "SUP",
+};
+
+function LanePreferenceChart({ laneCounts }: { laneCounts: Record<Lane, number> }) {
+  const max = Math.max(1, ...LANES.map((l) => laneCounts[l]));
+  return (
+    <div className="flex items-end gap-2">
+      {LANES.map((lane) => {
+        const count = laneCounts[lane];
+        const heightPct = count > 0 ? Math.max(8, Math.round((count / max) * 100)) : 0;
+        return (
+          <div key={lane} className="flex flex-col items-center gap-1">
+            <div className="flex h-16 w-5 items-end overflow-hidden rounded bg-neutral-800">
+              <div
+                className="w-full rounded bg-sky-500"
+                style={{ height: `${heightPct}%` }}
+              />
+            </div>
+            <span className="text-[9px] text-neutral-500">
+              {LANE_SHORT_LABELS[lane]}
+            </span>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function RecentChampionBreakdown({
+  champions,
+  totalGames,
+  championMap,
+}: {
+  champions: ChampionStat[];
+  totalGames: number;
+  championMap: Record<string, ChampionInfo>;
+}) {
+  const top = champions.slice(0, 5);
+  if (top.length === 0) {
+    return <p className="text-xs text-neutral-500">対象試合がありません</p>;
+  }
+  return (
+    <div className="space-y-2">
+      {top.map((c) => {
+        const champ = champIcon(championMap, c.championName);
+        const playRate =
+          totalGames > 0 ? Math.round((c.games / totalGames) * 100) : 0;
+        return (
+          <div key={c.championName} className="flex items-center gap-2 text-xs">
+            {champ ? (
+              <Image
+                src={champ.iconUrl}
+                alt={champ.nameJa}
+                width={28}
+                height={28}
+                unoptimized
+                className="shrink-0 rounded border border-neutral-700"
+              />
+            ) : (
+              <div className="h-7 w-7 shrink-0 rounded bg-neutral-800" />
+            )}
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center justify-between gap-2">
+                <span className="truncate text-neutral-200">
+                  {champ?.nameJa ?? c.championName}
+                </span>
+                <span className="shrink-0 text-neutral-500">
+                  {playRate}% ({c.games}戦)
+                </span>
+              </div>
+              <div className="flex items-center justify-between gap-2 text-neutral-500">
+                <span>
+                  {c.wins}勝{c.losses}敗
+                </span>
+                <span>{formatKda(c.kda)} KDA</span>
+              </div>
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function ChampionStatsTable({
+  stats,
+  championMap,
+}: {
+  stats: ChampionStat[];
+  championMap: Record<string, ChampionInfo>;
+}) {
+  if (stats.length === 0) {
+    return <p className="text-xs text-neutral-500">対象試合がありません</p>;
+  }
+  return (
+    <div className="overflow-x-auto">
+      <table className="w-full min-w-[300px] text-xs">
+        <thead>
+          <tr className="text-neutral-500">
+            <th className="pb-2 text-left font-normal">チャンピオン</th>
+            <th className="pb-2 text-right font-normal">勝率</th>
+            <th className="pb-2 text-right font-normal">KDA</th>
+            <th className="pb-2 text-right font-normal">CS/分</th>
+          </tr>
+        </thead>
+        <tbody>
+          {stats.slice(0, 10).map((c) => {
+            const champ = champIcon(championMap, c.championName);
+            return (
+              <tr key={c.championName} className="border-t border-neutral-800">
+                <td className="py-2">
+                  <div className="flex items-center gap-2">
+                    {champ ? (
+                      <Image
+                        src={champ.iconUrl}
+                        alt={champ.nameJa}
+                        width={28}
+                        height={28}
+                        unoptimized
+                        className="shrink-0 rounded border border-neutral-700"
+                      />
+                    ) : (
+                      <div className="h-7 w-7 shrink-0 rounded bg-neutral-800" />
+                    )}
+                    <div className="min-w-0">
+                      <p className="truncate text-neutral-200">
+                        {champ?.nameJa ?? c.championName}
+                      </p>
+                      <p className="text-[10px] text-neutral-500">{c.games}戦</p>
+                    </div>
+                  </div>
+                </td>
+                <td className="py-2 text-right">
+                  <span
+                    className={c.winRate >= 50 ? "text-sky-400" : "text-red-400"}
+                  >
+                    {c.winRate}%
+                  </span>
+                  <p className="text-[10px] text-neutral-500">
+                    {c.wins}勝{c.losses}敗
+                  </p>
+                </td>
+                <td className="py-2 text-right text-neutral-300">
+                  {formatKda(c.kda)}
+                  <p className="text-[10px] text-neutral-500">
+                    {c.avgKills.toFixed(1)}/{c.avgDeaths.toFixed(1)}/
+                    {c.avgAssists.toFixed(1)}
+                  </p>
+                </td>
+                <td className="py-2 text-right text-neutral-300">
+                  {c.avgCsPerMin.toFixed(1)}
+                </td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+function RankedStatsPanel({
+  matches,
+  championMap,
+}: {
+  matches: HistoryMatch[];
+  championMap: Record<string, ChampionInfo>;
+}) {
+  const championStats = useMemo(() => computeChampionStats(matches), [matches]);
+  const summary = useMemo(() => computeRecentSummary(matches, 20), [matches]);
+
+  return (
+    <div className="mb-6 grid grid-cols-1 gap-4 lg:grid-cols-2">
+      <div className="rounded-xl border border-neutral-800 bg-neutral-900 p-4">
+        <h3 className="mb-3 text-sm font-semibold text-white">
+          チャンプ別成績{" "}
+          <span className="text-xs font-normal text-neutral-500">
+            (直近{matches.length}試合)
+          </span>
+        </h3>
+        <ChampionStatsTable stats={championStats} championMap={championMap} />
+      </div>
+      <div className="rounded-xl border border-neutral-800 bg-neutral-900 p-4">
+        <h3 className="mb-3 text-sm font-semibold text-white">
+          最近の試合{" "}
+          <span className="text-xs font-normal text-neutral-500">
+            (直近{summary.games}試合)
+          </span>
+        </h3>
+        <div className="flex flex-wrap items-center gap-6">
+          <div className="flex items-center gap-3">
+            <WinRateDonut winRate={summary.winRate} />
+            <div className="text-xs text-neutral-400">
+              <p>
+                {summary.games}戦 {summary.wins}勝{summary.losses}敗
+              </p>
+              <p className="text-neutral-300">
+                {summary.avgKills.toFixed(1)} / {summary.avgDeaths.toFixed(1)} /{" "}
+                {summary.avgAssists.toFixed(1)}
+              </p>
+              <p>{formatKda(summary.kda)} KDA</p>
+            </div>
+          </div>
+          <LanePreferenceChart laneCounts={summary.laneCounts} />
+        </div>
+        <div className="mt-4">
+          <p className="mb-2 text-xs text-neutral-500">プレイしたチャンピオン</p>
+          <RecentChampionBreakdown
+            champions={summary.champions}
+            totalGames={summary.games}
+            championMap={championMap}
+          />
+        </div>
+      </div>
+    </div>
+  );
 }
 
 function summonerUrl(platform: Platform, gameName: string, tagLine: string) {
@@ -900,7 +1269,7 @@ export default function SummonerSearch({
       const res = await fetch(
         `/api/riot/history?platform=${lastSearched.platform}&gameName=${encodeURIComponent(
           lastSearched.gameName
-        )}&tagLine=${encodeURIComponent(lastSearched.tagLine)}&count=20&queueId=${queueId}`
+        )}&tagLine=${encodeURIComponent(lastSearched.tagLine)}&count=100&queueId=${queueId}`
       );
       const json = await res.json();
       if (!res.ok) {
@@ -1280,6 +1649,12 @@ export default function SummonerSearch({
               </span>
             )}
           </div>
+
+          {isRankedCategory &&
+            Array.isArray(rankedState) &&
+            rankedState.length > 0 && (
+              <RankedStatsPanel matches={rankedState} championMap={championMap} />
+            )}
 
           {!categoryLoading && !categoryError && displayedMatches && (() => {
             const currentPlatform = searchedPlatform ?? platform;
