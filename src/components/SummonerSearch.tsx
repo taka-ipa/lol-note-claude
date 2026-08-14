@@ -1360,7 +1360,9 @@ export default function SummonerSearch({
                       </div>
 
                       <div className="sm:w-24 sm:shrink-0 text-xs text-neutral-500">
-                        <p>CS {m.cs}</p>
+                        <p>
+                          CS {m.cs} ({(m.cs / (m.gameDuration / 60)).toFixed(1)}/分)
+                        </p>
                         <p>{formatDuration(m.gameDuration)}</p>
                       </div>
                     </div>
