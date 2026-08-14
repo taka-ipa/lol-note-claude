@@ -253,45 +253,39 @@ function RecentChampionBreakdown({
   totalGames: number;
   championMap: Record<string, ChampionInfo>;
 }) {
-  const top = champions.slice(0, 5);
+  const top = champions.slice(0, 3);
   if (top.length === 0) {
     return <p className="text-xs text-neutral-500">対象試合がありません</p>;
   }
   return (
-    <div className="space-y-2">
+    <div className="flex flex-wrap gap-x-5 gap-y-2">
       {top.map((c) => {
         const champ = champIcon(championMap, c.championName);
         const playRate =
           totalGames > 0 ? Math.round((c.games / totalGames) * 100) : 0;
         return (
-          <div key={c.championName} className="flex items-center gap-2 text-xs">
+          <div key={c.championName} className="flex items-center gap-2">
             {champ ? (
               <Image
                 src={champ.iconUrl}
                 alt={champ.nameJa}
-                width={28}
-                height={28}
+                width={32}
+                height={32}
                 unoptimized
                 className="shrink-0 rounded border border-neutral-700"
               />
             ) : (
-              <div className="h-7 w-7 shrink-0 rounded bg-neutral-800" />
+              <div className="h-8 w-8 shrink-0 rounded bg-neutral-800" />
             )}
-            <div className="min-w-0 flex-1">
-              <div className="flex items-center justify-between gap-2">
-                <span className="truncate text-neutral-200">
-                  {champ?.nameJa ?? c.championName}
-                </span>
-                <span className="shrink-0 text-neutral-500">
-                  {playRate}% ({c.games}戦)
-                </span>
-              </div>
-              <div className="flex items-center justify-between gap-2 text-neutral-500">
-                <span>
-                  {c.wins}勝{c.losses}敗
-                </span>
-                <span>{formatKda(c.kda)} KDA</span>
-              </div>
+            <div className="text-xs whitespace-nowrap">
+              <p className="text-neutral-300">
+                {playRate}% ({c.games}戦)
+              </p>
+              <p
+                className={c.winRate >= 50 ? "text-sky-400" : "text-neutral-500"}
+              >
+                {formatKda(c.kda)} KDA
+              </p>
             </div>
           </div>
         );
@@ -313,35 +307,37 @@ function RecentFormPanel({
 
   return (
     <div className="mb-6 rounded-xl border border-neutral-800 bg-neutral-900 p-4">
-      <h3 className="mb-3 text-sm font-semibold text-white">
-        最近の試合{" "}
-        <span className="text-xs font-normal text-neutral-500">
-          (直近{summary.games}試合)
-        </span>
-      </h3>
-      <div className="flex flex-wrap items-center gap-6">
-        <div className="flex items-center gap-3">
+      <h3 className="mb-3 text-sm font-semibold text-white">最近の試合</h3>
+      <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:divide-x lg:divide-neutral-800">
+        <div className="flex shrink-0 items-center gap-3 lg:pr-5">
           <WinRateDonut winRate={summary.winRate} />
-          <div className="text-xs text-neutral-400">
-            <p>
+          <div className="text-xs whitespace-nowrap text-neutral-400">
+            <p className="text-neutral-300">
               {summary.games}戦 {summary.wins}勝{summary.losses}敗
             </p>
             <p className="text-neutral-300">
               {summary.avgKills.toFixed(1)} / {summary.avgDeaths.toFixed(1)} /{" "}
               {summary.avgAssists.toFixed(1)}
             </p>
-            <p>{formatKda(summary.kda)} KDA</p>
+            <p>{formatKda(summary.kda)}</p>
           </div>
         </div>
-        <LanePreferenceChart laneCounts={summary.laneCounts} />
-      </div>
-      <div className="mt-4">
-        <p className="mb-2 text-xs text-neutral-500">プレイしたチャンピオン</p>
-        <RecentChampionBreakdown
-          champions={summary.champions}
-          totalGames={summary.games}
-          championMap={championMap}
-        />
+
+        <div className="min-w-0 flex-1 lg:px-5">
+          <p className="mb-2 text-[10px] text-neutral-500">
+            直近{summary.games}試合でプレイしたチャンピオン
+          </p>
+          <RecentChampionBreakdown
+            champions={summary.champions}
+            totalGames={summary.games}
+            championMap={championMap}
+          />
+        </div>
+
+        <div className="shrink-0 lg:pl-5">
+          <p className="mb-2 text-[10px] text-neutral-500">好みのポジション</p>
+          <LanePreferenceChart laneCounts={summary.laneCounts} />
+        </div>
       </div>
     </div>
   );
