@@ -300,135 +300,48 @@ function RecentChampionBreakdown({
   );
 }
 
-function ChampionStatsTable({
-  stats,
-  championMap,
-}: {
-  stats: ChampionStat[];
-  championMap: Record<string, ChampionInfo>;
-}) {
-  if (stats.length === 0) {
-    return <p className="text-xs text-neutral-500">対象試合がありません</p>;
-  }
-  return (
-    <div className="overflow-x-auto">
-      <table className="w-full min-w-[300px] text-xs">
-        <thead>
-          <tr className="text-neutral-500">
-            <th className="pb-2 text-left font-normal">チャンピオン</th>
-            <th className="pb-2 text-right font-normal">勝率</th>
-            <th className="pb-2 text-right font-normal">KDA</th>
-            <th className="pb-2 text-right font-normal">CS/分</th>
-          </tr>
-        </thead>
-        <tbody>
-          {stats.slice(0, 10).map((c) => {
-            const champ = champIcon(championMap, c.championName);
-            return (
-              <tr key={c.championName} className="border-t border-neutral-800">
-                <td className="py-2">
-                  <div className="flex items-center gap-2">
-                    {champ ? (
-                      <Image
-                        src={champ.iconUrl}
-                        alt={champ.nameJa}
-                        width={28}
-                        height={28}
-                        unoptimized
-                        className="shrink-0 rounded border border-neutral-700"
-                      />
-                    ) : (
-                      <div className="h-7 w-7 shrink-0 rounded bg-neutral-800" />
-                    )}
-                    <div className="min-w-0">
-                      <p className="truncate text-neutral-200">
-                        {champ?.nameJa ?? c.championName}
-                      </p>
-                      <p className="text-[10px] text-neutral-500">{c.games}戦</p>
-                    </div>
-                  </div>
-                </td>
-                <td className="py-2 text-right">
-                  <span
-                    className={c.winRate >= 50 ? "text-sky-400" : "text-red-400"}
-                  >
-                    {c.winRate}%
-                  </span>
-                  <p className="text-[10px] text-neutral-500">
-                    {c.wins}勝{c.losses}敗
-                  </p>
-                </td>
-                <td className="py-2 text-right text-neutral-300">
-                  {formatKda(c.kda)}
-                  <p className="text-[10px] text-neutral-500">
-                    {c.avgKills.toFixed(1)}/{c.avgDeaths.toFixed(1)}/
-                    {c.avgAssists.toFixed(1)}
-                  </p>
-                </td>
-                <td className="py-2 text-right text-neutral-300">
-                  {c.avgCsPerMin.toFixed(1)}
-                </td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
-    </div>
-  );
-}
-
-function RankedStatsPanel({
+function RecentFormPanel({
   matches,
   championMap,
 }: {
   matches: HistoryMatch[];
   championMap: Record<string, ChampionInfo>;
 }) {
-  const championStats = useMemo(() => computeChampionStats(matches), [matches]);
   const summary = useMemo(() => computeRecentSummary(matches, 20), [matches]);
 
+  if (summary.games === 0) return null;
+
   return (
-    <div className="mb-6 grid grid-cols-1 gap-4 lg:grid-cols-2">
-      <div className="rounded-xl border border-neutral-800 bg-neutral-900 p-4">
-        <h3 className="mb-3 text-sm font-semibold text-white">
-          チャンプ別成績{" "}
-          <span className="text-xs font-normal text-neutral-500">
-            (直近{matches.length}試合)
-          </span>
-        </h3>
-        <ChampionStatsTable stats={championStats} championMap={championMap} />
-      </div>
-      <div className="rounded-xl border border-neutral-800 bg-neutral-900 p-4">
-        <h3 className="mb-3 text-sm font-semibold text-white">
-          最近の試合{" "}
-          <span className="text-xs font-normal text-neutral-500">
-            (直近{summary.games}試合)
-          </span>
-        </h3>
-        <div className="flex flex-wrap items-center gap-6">
-          <div className="flex items-center gap-3">
-            <WinRateDonut winRate={summary.winRate} />
-            <div className="text-xs text-neutral-400">
-              <p>
-                {summary.games}戦 {summary.wins}勝{summary.losses}敗
-              </p>
-              <p className="text-neutral-300">
-                {summary.avgKills.toFixed(1)} / {summary.avgDeaths.toFixed(1)} /{" "}
-                {summary.avgAssists.toFixed(1)}
-              </p>
-              <p>{formatKda(summary.kda)} KDA</p>
-            </div>
+    <div className="mb-6 rounded-xl border border-neutral-800 bg-neutral-900 p-4">
+      <h3 className="mb-3 text-sm font-semibold text-white">
+        最近の試合{" "}
+        <span className="text-xs font-normal text-neutral-500">
+          (直近{summary.games}試合)
+        </span>
+      </h3>
+      <div className="flex flex-wrap items-center gap-6">
+        <div className="flex items-center gap-3">
+          <WinRateDonut winRate={summary.winRate} />
+          <div className="text-xs text-neutral-400">
+            <p>
+              {summary.games}戦 {summary.wins}勝{summary.losses}敗
+            </p>
+            <p className="text-neutral-300">
+              {summary.avgKills.toFixed(1)} / {summary.avgDeaths.toFixed(1)} /{" "}
+              {summary.avgAssists.toFixed(1)}
+            </p>
+            <p>{formatKda(summary.kda)} KDA</p>
           </div>
-          <LanePreferenceChart laneCounts={summary.laneCounts} />
         </div>
-        <div className="mt-4">
-          <p className="mb-2 text-xs text-neutral-500">プレイしたチャンピオン</p>
-          <RecentChampionBreakdown
-            champions={summary.champions}
-            totalGames={summary.games}
-            championMap={championMap}
-          />
-        </div>
+        <LanePreferenceChart laneCounts={summary.laneCounts} />
+      </div>
+      <div className="mt-4">
+        <p className="mb-2 text-xs text-neutral-500">プレイしたチャンピオン</p>
+        <RecentChampionBreakdown
+          champions={summary.champions}
+          totalGames={summary.games}
+          championMap={championMap}
+        />
       </div>
     </div>
   );
@@ -1269,7 +1182,7 @@ export default function SummonerSearch({
       const res = await fetch(
         `/api/riot/history?platform=${lastSearched.platform}&gameName=${encodeURIComponent(
           lastSearched.gameName
-        )}&tagLine=${encodeURIComponent(lastSearched.tagLine)}&count=100&queueId=${queueId}`
+        )}&tagLine=${encodeURIComponent(lastSearched.tagLine)}&count=20&queueId=${queueId}`
       );
       const json = await res.json();
       if (!res.ok) {
@@ -1650,11 +1563,9 @@ export default function SummonerSearch({
             )}
           </div>
 
-          {isRankedCategory &&
-            Array.isArray(rankedState) &&
-            rankedState.length > 0 && (
-              <RankedStatsPanel matches={rankedState} championMap={championMap} />
-            )}
+          {!categoryLoading && !categoryError && displayedMatches && (
+            <RecentFormPanel matches={displayedMatches} championMap={championMap} />
+          )}
 
           {!categoryLoading && !categoryError && displayedMatches && (() => {
             const currentPlatform = searchedPlatform ?? platform;

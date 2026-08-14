@@ -62,10 +62,6 @@ export type HistoryMatch = {
 
 const LANE_ORDER = ["TOP", "JUNGLE", "MID", "ADC", "SUPPORT"];
 
-// ランク戦の統計集計用に最大100試合分をまとめて取得することがあるため、
-// Riot APIへの逐次リクエストがVercelのデフォルト実行時間上限に収まるよう延長する。
-export const maxDuration = 60;
-
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const platform = searchParams.get("platform") as Platform | null;
