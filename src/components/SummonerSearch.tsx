@@ -229,47 +229,51 @@ function getTopLane(
 }
 
 function LaneIcon({ lane, className }: { lane: Lane; className?: string }) {
-  const common = {
+  const stroke = {
     viewBox: "0 0 24 24",
     fill: "none",
     stroke: "currentColor",
-    strokeWidth: 1.8,
+    strokeWidth: 1.6,
     strokeLinecap: "round" as const,
     strokeLinejoin: "round" as const,
     className,
   };
+  // 共通の菱形フレームの中に、レーンごとに異なる図形を配置したオリジナルデザイン。
+  const frame = <path d="M12 2.5L21.5 12L12 21.5L2.5 12z" />;
   switch (lane) {
     case "TOP":
       return (
-        <svg {...common}>
-          <path d="M12 3l7 3v5c0 5-3.2 8.4-7 10-3.8-1.6-7-5-7-10V6l7-3z" />
+        <svg {...stroke}>
+          {frame}
+          <path d="M8.5 13.5L12 9l3.5 4.5" />
         </svg>
       );
     case "JUNGLE":
       return (
-        <svg {...common}>
-          <path d="M12 2c-3 3-5 6-5 9a5 5 0 0 0 10 0c0-3-2-6-5-9z" />
-          <path d="M12 13v9" />
+        <svg {...stroke}>
+          {frame}
+          <path d="M12 8v8M9 10l3-2 3 2M9 14l3 2 3-2" />
         </svg>
       );
     case "MID":
       return (
-        <svg {...common}>
-          <path d="M12 2l2.5 7.5L22 12l-7.5 2.5L12 22l-2.5-7.5L2 12l7.5-2.5L12 2z" />
+        <svg {...stroke}>
+          {frame}
+          <path d="M12 8v8M8 12h8" />
         </svg>
       );
     case "ADC":
       return (
-        <svg {...common}>
-          <path d="M4 20L20 4" />
-          <path d="M13 4h7v7" />
-          <path d="M7 14l3 3" />
+        <svg {...stroke}>
+          {frame}
+          <path d="M9 15l6-6M15 9v4M15 9h-4" />
         </svg>
       );
     case "SUPPORT":
       return (
-        <svg {...common}>
-          <path d="M12 21s-7-4.35-9-9c-1.2-3 1-6 4-6 2 0 3.5 1.2 5 3 1.5-1.8 3-3 5-3 3 0 5.2 3 4 6-2 4.65-9 9-9 9z" />
+        <svg {...stroke}>
+          {frame}
+          <path d="M12 8.5v7M9 11h6" />
         </svg>
       );
   }
@@ -282,10 +286,10 @@ function TopLaneBadge({ lane, pct }: { lane: Lane; pct: number }) {
         好みのポジション
       </p>
       <div className="mt-1 flex items-center justify-center gap-1.5">
-        <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded bg-neutral-800 text-sky-400">
+        <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded bg-neutral-800 text-amber-400">
           <LaneIcon lane={lane} className="h-4 w-4" />
         </div>
-        <span className="whitespace-nowrap text-sm font-semibold text-white">
+        <span className="whitespace-nowrap text-sm font-semibold text-amber-300">
           {pct}%
         </span>
       </div>
