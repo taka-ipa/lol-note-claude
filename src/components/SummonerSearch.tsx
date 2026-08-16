@@ -228,56 +228,13 @@ function getTopLane(
   return { lane: top, pct: Math.round((max / totalGames) * 100) };
 }
 
-function LaneIcon({ lane, className }: { lane: Lane; className?: string }) {
-  const stroke = {
-    viewBox: "0 0 24 24",
-    fill: "none",
-    stroke: "currentColor",
-    strokeWidth: 1.6,
-    strokeLinecap: "round" as const,
-    strokeLinejoin: "round" as const,
-    className,
-  };
-  // 共通の菱形フレームの中に、レーンごとに異なる図形を配置したオリジナルデザイン。
-  const frame = <path d="M12 2.5L21.5 12L12 21.5L2.5 12z" />;
-  switch (lane) {
-    case "TOP":
-      return (
-        <svg {...stroke}>
-          {frame}
-          <path d="M8.5 13.5L12 9l3.5 4.5" />
-        </svg>
-      );
-    case "JUNGLE":
-      return (
-        <svg {...stroke}>
-          {frame}
-          <path d="M12 8v8M9 10l3-2 3 2M9 14l3 2 3-2" />
-        </svg>
-      );
-    case "MID":
-      return (
-        <svg {...stroke}>
-          {frame}
-          <path d="M12 8v8M8 12h8" />
-        </svg>
-      );
-    case "ADC":
-      return (
-        <svg {...stroke}>
-          {frame}
-          <path d="M9 15l6-6M15 9v4M15 9h-4" />
-        </svg>
-      );
-    case "SUPPORT":
-      return (
-        <svg {...stroke}>
-          {frame}
-          <path d="M12 8.5v7M9 11h6" />
-        </svg>
-      );
-  }
-}
+const LANE_SHORT_LABELS: Record<Lane, string> = {
+  TOP: "TOP",
+  JUNGLE: "JG",
+  MID: "MID",
+  ADC: "ADC",
+  SUPPORT: "SUP",
+};
 
 function TopLaneBadge({ lane, pct }: { lane: Lane; pct: number }) {
   return (
@@ -285,14 +242,9 @@ function TopLaneBadge({ lane, pct }: { lane: Lane; pct: number }) {
       <p className="whitespace-nowrap text-[10px] text-neutral-500">
         好みのポジション
       </p>
-      <div className="mt-1 flex items-center justify-center gap-1.5">
-        <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded bg-neutral-800 text-amber-400">
-          <LaneIcon lane={lane} className="h-4 w-4" />
-        </div>
-        <span className="whitespace-nowrap text-sm font-semibold text-amber-300">
-          {pct}%
-        </span>
-      </div>
+      <p className="whitespace-nowrap text-sm font-semibold text-white">
+        {LANE_SHORT_LABELS[lane]} <span className="text-sky-400">{pct}%</span>
+      </p>
     </div>
   );
 }
