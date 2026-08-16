@@ -32,6 +32,7 @@ import type { BuildItem, ParticipantBuild } from "@/app/api/riot/timeline/route"
 import type { RuneTree } from "@/lib/riot";
 
 const SHOPPING_TRIP_GAP_MS = 30_000;
+const LOAD_MORE_STEPS = [20, 40, 50];
 
 type ChampionInfo = { id: string; nameJa: string; iconUrl: string };
 
@@ -1131,12 +1132,41 @@ export default function SummonerSearch({
   const [rankedCache, setRankedCache] = useState<
     Partial<Record<"solo" | "flex", HistoryMatch[] | "loading" | "error">>
   >({});
+  const [allCount, setAllCount] = useState(20);
+  const [allLoadingMore, setAllLoadingMore] = useState(false);
+  const [rankedCount, setRankedCount] = useState<
+    Partial<Record<"solo" | "flex", number>>
+  >({});
+  const [rankedLoadingMore, setRankedLoadingMore] = useState<
+    Partial<Record<"solo" | "flex", boolean>>
+  >({});
+
+  async function fetchHistory(
+    p: Platform,
+    gameName: string,
+    tagLine: string,
+    count: number,
+    queueId?: number
+  ) {
+    const params = new URLSearchParams({
+      platform: p,
+      gameName,
+      tagLine,
+      count: String(count),
+    });
+    if (queueId) params.set("queueId", String(queueId));
+    const res = await fetch(`/api/riot/history?${params.toString()}`);
+    const json = await res.json();
+    return { ok: res.ok, status: res.status, json };
+  }
 
   async function runSearch(p: Platform, gameName: string, tagLine: string) {
     setLastSearched({ platform: p, gameName, tagLine });
     setActiveCategory("all");
     setDropdownOpen(false);
     setRankedCache({});
+    setRankedCount({});
+    setAllCount(20);
     setLoading(true);
     setError(null);
     setErrorStatus(null);
@@ -1145,15 +1175,10 @@ export default function SummonerSearch({
     setMatchTab({});
     setBuildCache({});
     try {
-      const res = await fetch(
-        `/api/riot/history?platform=${p}&gameName=${encodeURIComponent(
-          gameName
-        )}&tagLine=${encodeURIComponent(tagLine)}&count=25`
-      );
-      const json = await res.json();
-      if (!res.ok) {
+      const { ok, status, json } = await fetchHistory(p, gameName, tagLine, 20);
+      if (!ok) {
         setError(json.error ?? "検索に失敗しました");
-        setErrorStatus(res.status);
+        setErrorStatus(status);
         return;
       }
       setData(json);
@@ -1175,19 +1200,72 @@ export default function SummonerSearch({
     setRankedCache((c) => ({ ...c, [category]: "loading" }));
     try {
       const queueId = RANKED_QUEUE_IDS[category];
-      const res = await fetch(
-        `/api/riot/history?platform=${lastSearched.platform}&gameName=${encodeURIComponent(
-          lastSearched.gameName
-        )}&tagLine=${encodeURIComponent(lastSearched.tagLine)}&count=25&queueId=${queueId}`
+      const { ok, json } = await fetchHistory(
+        lastSearched.platform,
+        lastSearched.gameName,
+        lastSearched.tagLine,
+        20,
+        queueId
       );
-      const json = await res.json();
-      if (!res.ok) {
+      if (!ok) {
         setRankedCache((c) => ({ ...c, [category]: "error" }));
         return;
       }
       setRankedCache((c) => ({ ...c, [category]: json.matches }));
+      setRankedCount((c) => ({ ...c, [category]: 20 }));
     } catch {
       setRankedCache((c) => ({ ...c, [category]: "error" }));
+    }
+  }
+
+  async function loadMoreAll() {
+    if (!lastSearched) return;
+    const idx = LOAD_MORE_STEPS.indexOf(allCount);
+    const nextCount = LOAD_MORE_STEPS[idx + 1];
+    if (!nextCount) return;
+    setAllLoadingMore(true);
+    try {
+      const { ok, json } = await fetchHistory(
+        lastSearched.platform,
+        lastSearched.gameName,
+        lastSearched.tagLine,
+        nextCount
+      );
+      if (ok) {
+        setData(json);
+        setAllCount(nextCount);
+      }
+    } catch {
+      // 既存の一覧はそのまま残す
+    } finally {
+      setAllLoadingMore(false);
+    }
+  }
+
+  async function loadMoreRanked(category: "solo" | "flex") {
+    if (!lastSearched) return;
+    const current = rankedCount[category] ?? 20;
+    const idx = LOAD_MORE_STEPS.indexOf(current);
+    const nextCount = LOAD_MORE_STEPS[idx + 1];
+    if (!nextCount) return;
+    setRankedLoadingMore((c) => ({ ...c, [category]: true }));
+    try {
+      const queueId = RANKED_QUEUE_IDS[category];
+      const { ok, json } = await fetchHistory(
+        lastSearched.platform,
+        lastSearched.gameName,
+        lastSearched.tagLine,
+        nextCount,
+        queueId
+      );
+      if (ok) {
+        setRankedCache((c) => ({ ...c, [category]: json.matches }));
+        setRankedCount((c) => ({ ...c, [category]: nextCount }));
+      }
+    } catch {
+      // 既存の一覧はそのまま残す
+    } finally {
+      setRankedLoadingMore((c) => ({ ...c, [category]: false }));
     }
   }
 
@@ -1266,6 +1344,20 @@ export default function SummonerSearch({
     : data.matches.filter(
         (m) => categoryOf(m.queueId, m.gameMode) === activeCategory
       );
+
+  const currentRankedCount = isRankedCategory
+    ? rankedCount[activeCategory as "solo" | "flex"] ?? 20
+    : 20;
+  const canLoadMore = isRankedCategory
+    ? Array.isArray(rankedState) &&
+      rankedState.length >= currentRankedCount &&
+      LOAD_MORE_STEPS.indexOf(currentRankedCount) < LOAD_MORE_STEPS.length - 1
+    : !!data &&
+      data.matches.length >= allCount &&
+      LOAD_MORE_STEPS.indexOf(allCount) < LOAD_MORE_STEPS.length - 1;
+  const loadingMore = isRankedCategory
+    ? rankedLoadingMore[activeCategory as "solo" | "flex"] ?? false
+    : allLoadingMore;
 
   const showHero = hero && !data;
 
@@ -1718,6 +1810,22 @@ export default function SummonerSearch({
 
           {displayedMatches.length === 0 && (
             <p className="text-neutral-500">この条件の試合が見つかりませんでした</p>
+          )}
+
+          {canLoadMore && (
+            <button
+              type="button"
+              disabled={loadingMore}
+              onClick={() =>
+                isRankedCategory
+                  ? loadMoreRanked(activeCategory as "solo" | "flex")
+                  : loadMoreAll()
+              }
+              className="mt-2 flex w-full items-center justify-center gap-1.5 rounded-lg border border-neutral-800 bg-neutral-900 py-2.5 text-sm font-medium text-neutral-300 transition-colors hover:bg-neutral-800 disabled:opacity-50"
+            >
+              {loadingMore && <Spinner className="h-3.5 w-3.5" />}
+              {loadingMore ? "読み込み中..." : "もっと見る"}
+            </button>
           )}
           </>
             );
