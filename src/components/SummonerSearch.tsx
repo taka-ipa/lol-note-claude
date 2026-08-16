@@ -220,27 +220,31 @@ const LANE_SHORT_LABELS: Record<Lane, string> = {
   SUPPORT: "SUP",
 };
 
-function LanePreferenceChart({ laneCounts }: { laneCounts: Record<Lane, number> }) {
-  const max = Math.max(1, ...LANES.map((l) => laneCounts[l]));
+function getTopLane(
+  laneCounts: Record<Lane, number>,
+  totalGames: number
+): { lane: Lane; pct: number } | null {
+  let top: Lane | null = null;
+  let max = 0;
+  for (const lane of LANES) {
+    if (laneCounts[lane] > max) {
+      max = laneCounts[lane];
+      top = lane;
+    }
+  }
+  if (!top || totalGames === 0) return null;
+  return { lane: top, pct: Math.round((max / totalGames) * 100) };
+}
+
+function TopLaneBadge({ lane, pct }: { lane: Lane; pct: number }) {
   return (
-    <div className="flex items-end gap-2">
-      {LANES.map((lane) => {
-        const count = laneCounts[lane];
-        const heightPct = count > 0 ? Math.max(8, Math.round((count / max) * 100)) : 0;
-        return (
-          <div key={lane} className="flex shrink-0 flex-col items-center gap-1">
-            <div className="flex h-16 w-5 items-end overflow-hidden rounded bg-neutral-800">
-              <div
-                className="w-full rounded bg-sky-500"
-                style={{ height: `${heightPct}%` }}
-              />
-            </div>
-            <span className="text-[9px] text-neutral-500">
-              {LANE_SHORT_LABELS[lane]}
-            </span>
-          </div>
-        );
-      })}
+    <div className="shrink-0 rounded-lg border border-neutral-800 bg-neutral-950 px-3 py-1.5 text-center">
+      <p className="whitespace-nowrap text-[10px] text-neutral-500">
+        好みのポジション
+      </p>
+      <p className="whitespace-nowrap text-sm font-semibold text-white">
+        {LANE_SHORT_LABELS[lane]} <span className="text-sky-400">{pct}%</span>
+      </p>
     </div>
   );
 }
@@ -303,43 +307,42 @@ function RecentFormPanel({
   championMap: Record<string, ChampionInfo>;
 }) {
   const summary = useMemo(() => computeRecentSummary(matches, 20), [matches]);
+  const topLane = useMemo(
+    () => getTopLane(summary.laneCounts, summary.games),
+    [summary.laneCounts, summary.games]
+  );
 
   if (summary.games === 0) return null;
 
   return (
     <div className="mb-6 rounded-xl border border-neutral-800 bg-neutral-900 p-4">
       <h3 className="mb-3 text-sm font-semibold text-white">最近の試合</h3>
-      <div className="flex items-center gap-4 divide-x divide-neutral-800 overflow-x-auto">
-        <div className="flex shrink-0 items-center gap-2 pr-4">
-          <WinRateDonut winRate={summary.winRate} size={64} />
-          <div className="shrink-0 text-xs whitespace-nowrap text-neutral-400">
-            <p className="text-neutral-300">
-              {summary.games}戦 {summary.wins}勝{summary.losses}敗
-            </p>
-            <p className="text-neutral-300">
-              {summary.avgKills.toFixed(1)} / {summary.avgDeaths.toFixed(1)} /{" "}
-              {summary.avgAssists.toFixed(1)}
-            </p>
-            <p>{formatKda(summary.kda)}</p>
-          </div>
-        </div>
 
-        <div className="shrink-0 px-4">
-          <p className="mb-2 whitespace-nowrap text-[10px] text-neutral-500">
-            直近{summary.games}試合でプレイしたチャンピオン
+      <div className="flex items-center gap-3 overflow-x-auto">
+        <WinRateDonut winRate={summary.winRate} size={64} />
+        <div className="shrink-0 text-xs whitespace-nowrap text-neutral-400">
+          <p className="text-neutral-300">
+            {summary.games}戦 {summary.wins}勝{summary.losses}敗
           </p>
+          <p className="text-neutral-300">
+            {summary.avgKills.toFixed(1)} / {summary.avgDeaths.toFixed(1)} /{" "}
+            {summary.avgAssists.toFixed(1)}
+          </p>
+          <p>{formatKda(summary.kda)}</p>
+        </div>
+        {topLane && <TopLaneBadge lane={topLane.lane} pct={topLane.pct} />}
+      </div>
+
+      <div className="mt-3">
+        <p className="mb-2 text-[10px] text-neutral-500">
+          直近{summary.games}試合でプレイしたチャンピオン
+        </p>
+        <div className="overflow-x-auto">
           <RecentChampionBreakdown
             champions={summary.champions}
             totalGames={summary.games}
             championMap={championMap}
           />
-        </div>
-
-        <div className="shrink-0 pl-4">
-          <p className="mb-2 whitespace-nowrap text-[10px] text-neutral-500">
-            好みのポジション
-          </p>
-          <LanePreferenceChart laneCounts={summary.laneCounts} />
         </div>
       </div>
     </div>
