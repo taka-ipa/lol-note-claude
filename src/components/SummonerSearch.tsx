@@ -228,7 +228,7 @@ function LanePreferenceChart({ laneCounts }: { laneCounts: Record<Lane, number> 
         const count = laneCounts[lane];
         const heightPct = count > 0 ? Math.max(8, Math.round((count / max) * 100)) : 0;
         return (
-          <div key={lane} className="flex flex-col items-center gap-1">
+          <div key={lane} className="flex shrink-0 flex-col items-center gap-1">
             <div className="flex h-16 w-5 items-end overflow-hidden rounded bg-neutral-800">
               <div
                 className="w-full rounded bg-sky-500"
@@ -259,13 +259,13 @@ function RecentChampionBreakdown({
     return <p className="text-xs text-neutral-500">対象試合がありません</p>;
   }
   return (
-    <div className="flex flex-wrap gap-x-5 gap-y-2">
+    <div className="flex flex-nowrap gap-x-5">
       {top.map((c) => {
         const champ = champIcon(championMap, c.championName);
         const playRate =
           totalGames > 0 ? Math.round((c.games / totalGames) * 100) : 0;
         return (
-          <div key={c.championName} className="flex items-center gap-2">
+          <div key={c.championName} className="flex shrink-0 items-center gap-2">
             {champ ? (
               <Image
                 src={champ.iconUrl}
@@ -309,10 +309,10 @@ function RecentFormPanel({
   return (
     <div className="mb-6 rounded-xl border border-neutral-800 bg-neutral-900 p-4">
       <h3 className="mb-3 text-sm font-semibold text-white">最近の試合</h3>
-      <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:divide-x lg:divide-neutral-800">
-        <div className="flex shrink-0 items-center gap-3 lg:pr-5">
-          <WinRateDonut winRate={summary.winRate} />
-          <div className="text-xs whitespace-nowrap text-neutral-400">
+      <div className="flex items-center gap-4 divide-x divide-neutral-800 overflow-x-auto">
+        <div className="flex shrink-0 items-center gap-2 pr-4">
+          <WinRateDonut winRate={summary.winRate} size={64} />
+          <div className="shrink-0 text-xs whitespace-nowrap text-neutral-400">
             <p className="text-neutral-300">
               {summary.games}戦 {summary.wins}勝{summary.losses}敗
             </p>
@@ -324,8 +324,8 @@ function RecentFormPanel({
           </div>
         </div>
 
-        <div className="min-w-0 flex-1 lg:px-5">
-          <p className="mb-2 text-[10px] text-neutral-500">
+        <div className="shrink-0 px-4">
+          <p className="mb-2 whitespace-nowrap text-[10px] text-neutral-500">
             直近{summary.games}試合でプレイしたチャンピオン
           </p>
           <RecentChampionBreakdown
@@ -335,8 +335,10 @@ function RecentFormPanel({
           />
         </div>
 
-        <div className="shrink-0 lg:pl-5">
-          <p className="mb-2 text-[10px] text-neutral-500">好みのポジション</p>
+        <div className="shrink-0 pl-4">
+          <p className="mb-2 whitespace-nowrap text-[10px] text-neutral-500">
+            好みのポジション
+          </p>
           <LanePreferenceChart laneCounts={summary.laneCounts} />
         </div>
       </div>
