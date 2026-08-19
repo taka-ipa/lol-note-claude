@@ -16,8 +16,13 @@ import { STAT_SHARD_ICON_URLS } from "@/lib/statShards";
 import { RANK_EMBLEM_URLS } from "@/lib/rankEmblems";
 import {
   addToSearchHistory,
+  getSearchHistory,
   type SearchHistoryEntry,
 } from "@/lib/searchHistory";
+import {
+  addSearchHistoryDb,
+  getSearchHistoryDb,
+} from "@/lib/searchHistoryActions";
 import {
   MAIN_TABS,
   DROPDOWN_TABS,
@@ -1129,6 +1134,9 @@ export default function SummonerSearch({
     {}
   );
   const [buildCache, setBuildCache] = useState<Record<string, BuildState>>({});
+  const [history, setHistory] = useState<SearchHistoryEntry[]>(() =>
+    getSearchHistory()
+  );
   const [lastSearched, setLastSearched] = useState<InitialSearch | null>(
     initial ?? null
   );
@@ -1188,7 +1196,7 @@ export default function SummonerSearch({
       }
       setData(json);
       setSearchedPlatform(p);
-      addToSearchHistory({
+      recordSearchHistory({
         platform: p,
         gameName: json.account.gameName,
         tagLine: json.account.tagLine,
@@ -1197,6 +1205,30 @@ export default function SummonerSearch({
       setError("通信エラーが発生しました");
     } finally {
       setLoading(false);
+    }
+  }
+
+  function recordSearchHistory(entry: {
+    platform: Platform;
+    gameName: string;
+    tagLine: string;
+  }) {
+    addToSearchHistory(entry);
+    if (isLoggedIn) {
+      setHistory((prev) => {
+        const withoutDup = prev.filter(
+          (e) =>
+            !(
+              e.platform === entry.platform &&
+              e.gameName.toLowerCase() === entry.gameName.toLowerCase() &&
+              e.tagLine.toLowerCase() === entry.tagLine.toLowerCase()
+            )
+        );
+        return [{ ...entry, searchedAt: Date.now() }, ...withoutDup].slice(0, 20);
+      });
+      addSearchHistoryDb(entry).catch(() => {});
+    } else {
+      setHistory(getSearchHistory());
     }
   }
 
@@ -1282,6 +1314,13 @@ export default function SummonerSearch({
     runSearch(initial.platform, initial.gameName, initial.tagLine);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initial?.platform, initial?.gameName, initial?.tagLine]);
+
+  useEffect(() => {
+    if (!isLoggedIn) return;
+    getSearchHistoryDb().then((dbHistory) => {
+      if (dbHistory.length > 0) setHistory(dbHistory);
+    });
+  }, [isLoggedIn]);
 
   function handleSearch(e: React.FormEvent) {
     e.preventDefault();
@@ -1415,6 +1454,7 @@ export default function SummonerSearch({
                 onTagLineChange={setTagLine}
                 onSelectSuggestion={handleSelectSuggestion}
                 platform={platform}
+                history={history}
                 placeholder="サモナーネーム#タグ"
                 className="min-w-0 w-full bg-transparent px-3 py-2 text-sm text-white placeholder-neutral-500 focus:outline-none sm:px-4 sm:py-2.5"
               />
@@ -1516,6 +1556,7 @@ export default function SummonerSearch({
                 onTagLineChange={setTagLine}
                 onSelectSuggestion={handleSelectSuggestion}
                 platform={platform}
+                history={history}
                 placeholder="サモナーネーム#タグ"
                 className="w-full rounded-lg border border-neutral-700 bg-neutral-900 px-3 py-2 text-sm text-white placeholder-neutral-500 transition-colors focus:border-sky-500 focus:outline-none focus:ring-2 focus:ring-sky-500/20"
               />

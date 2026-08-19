@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import type { Platform } from "@/lib/riot";
 import {
-  matchByGameName,
+  filterHistory,
   type SearchHistoryEntry,
 } from "@/lib/searchHistory";
 
@@ -14,6 +14,7 @@ export default function RiotIdInput({
   onTagLineChange,
   onSelectSuggestion,
   platform,
+  history,
   placeholder = "ゲーム名#タグ",
   className,
 }: {
@@ -23,6 +24,7 @@ export default function RiotIdInput({
   onTagLineChange: (value: string) => void;
   onSelectSuggestion: (entry: SearchHistoryEntry) => void;
   platform: Platform;
+  history: SearchHistoryEntry[];
   placeholder?: string;
   className: string;
 }) {
@@ -48,7 +50,7 @@ export default function RiotIdInput({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [gameName, tagLine]);
 
-  const suggestions = focused ? matchByGameName(gameName) : [];
+  const suggestions = focused ? filterHistory(history, gameName) : [];
 
   function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
     const v = e.target.value;

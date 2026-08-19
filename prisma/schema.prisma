@@ -63,9 +63,24 @@ model User {
   emailVerified DateTime?
   image         String?
 
-  accounts Account[]
-  sessions Session[]
-  memos    MatchupMemo[]
+  accounts      Account[]
+  sessions      Session[]
+  memos         MatchupMemo[]
+  searchHistory SummonerSearchHistory[]
+}
+
+model SummonerSearchHistory {
+  id         String   @id @default(cuid())
+  userId     String
+  platform   String
+  gameName   String
+  tagLine    String
+  searchedAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, platform, gameName, tagLine])
+  @@index([userId, searchedAt])
 }
 
 model Account {
