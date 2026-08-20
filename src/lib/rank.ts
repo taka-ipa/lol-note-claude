@@ -1,14 +1,14 @@
 export const TIER_LABELS: Record<string, string> = {
-  IRON: "アイアン",
-  BRONZE: "ブロンズ",
-  SILVER: "シルバー",
-  GOLD: "ゴールド",
-  PLATINUM: "プラチナ",
-  EMERALD: "エメラルド",
-  DIAMOND: "ダイヤモンド",
-  MASTER: "マスター",
-  GRANDMASTER: "グランドマスター",
-  CHALLENGER: "チャレンジャー",
+  IRON: "Iron",
+  BRONZE: "Bronze",
+  SILVER: "Silver",
+  GOLD: "Gold",
+  PLATINUM: "Platinum",
+  EMERALD: "Emerald",
+  DIAMOND: "Diamond",
+  MASTER: "Master",
+  GRANDMASTER: "Grandmaster",
+  CHALLENGER: "Challenger",
 };
 
 export const TIER_COLORS: Record<string, string> = {
