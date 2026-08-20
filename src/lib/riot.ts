@@ -214,6 +214,7 @@ export type MatchParticipant = {
   championId: number;
   teamId: number;
   teamPosition: string;
+  summonerLevel: number;
   win: boolean;
   kills: number;
   deaths: number;

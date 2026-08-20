@@ -34,6 +34,7 @@ import RiotIdInput from "@/components/RiotIdInput";
 import Spinner from "@/components/Spinner";
 import type { HistoryMatch, HistoryParticipant } from "@/app/api/riot/history/route";
 import type { BuildItem, ParticipantBuild } from "@/app/api/riot/timeline/route";
+import type { ParticipantRank } from "@/app/api/riot/participant-ranks/route";
 import type { RuneTree } from "@/lib/riot";
 
 const SHOPPING_TRIP_GAP_MS = 30_000;
@@ -497,6 +498,7 @@ function ParticipantRow({
   isMe,
   maxDamage,
   gameDuration,
+  rank,
 }: {
   p: HistoryParticipant;
   championMap: Record<string, ChampionInfo>;
@@ -505,7 +507,11 @@ function ParticipantRow({
   isMe: boolean;
   maxDamage: number;
   gameDuration: number;
+  rank: ParticipantRank | undefined;
 }) {
+  const rankLabel = rank
+    ? formatRank(rank.tier, rank.rank)
+    : `Level ${p.summonerLevel}`;
   const champ = champIcon(championMap, p.championName);
   const kda = p.deaths === 0 ? "Perfect" : ((p.kills + p.assists) / p.deaths).toFixed(2);
   const damagePct =
@@ -531,11 +537,14 @@ function ParticipantRow({
         <div className="h-6 w-6 shrink-0 rounded bg-neutral-950" />
       )}
       <SpellRuneCluster p={p} icons={icons} />
-      <span
-        className={`w-24 truncate ${isMe ? "font-semibold text-white" : "text-neutral-300"}`}
-      >
-        {p.riotIdGameName}
-      </span>
+      <div className="w-24 min-w-0">
+        <p
+          className={`truncate ${isMe ? "font-semibold text-white" : "text-neutral-300"}`}
+        >
+          {p.riotIdGameName}
+        </p>
+        <p className="truncate text-[10px] text-neutral-500">{rankLabel}</p>
+      </div>
       <span className="w-24 text-neutral-300">
         {p.kills}/{p.deaths}/{p.assists}
         <span className="ml-1 text-neutral-500">({kda})</span>
@@ -934,6 +943,7 @@ function MatchDetail({
   onTabChange,
   buildState,
   onRequestBuild,
+  ranks,
 }: {
   match: HistoryMatch;
   championMap: Record<string, ChampionInfo>;
@@ -945,6 +955,7 @@ function MatchDetail({
   onTabChange: (tab: "overview" | "build") => void;
   buildState: BuildState | undefined;
   onRequestBuild: () => void;
+  ranks: Record<string, ParticipantRank> | undefined;
 }) {
   const blueTeam = match.participants.filter((p) => p.teamId === 100);
   const redTeam = match.participants.filter((p) => p.teamId === 200);
@@ -1003,6 +1014,7 @@ function MatchDetail({
                     isMe={p.puuid === myPuuid}
                     maxDamage={maxDamage}
                     gameDuration={match.gameDuration}
+                    rank={ranks?.[p.puuid]}
                   />
                 ))}
               </div>
@@ -1022,6 +1034,7 @@ function MatchDetail({
                     isMe={p.puuid === myPuuid}
                     maxDamage={maxDamage}
                     gameDuration={match.gameDuration}
+                    rank={ranks?.[p.puuid]}
                   />
                 ))}
               </div>
@@ -1134,6 +1147,9 @@ export default function SummonerSearch({
     {}
   );
   const [buildCache, setBuildCache] = useState<Record<string, BuildState>>({});
+  const [rankCache, setRankCache] = useState<
+    Record<string, Record<string, ParticipantRank> | "loading" | "error">
+  >({});
   const [history, setHistory] = useState<SearchHistoryEntry[]>(() =>
     getSearchHistory()
   );
@@ -1361,6 +1377,24 @@ export default function SummonerSearch({
       setBuildCache((c) => ({ ...c, [matchId]: json.participants }));
     } catch {
       setBuildCache((c) => ({ ...c, [matchId]: "error" }));
+    }
+  }
+
+  async function loadParticipantRanks(matchId: string, puuids: string[]) {
+    if (rankCache[matchId] || !searchedPlatform) return;
+    setRankCache((c) => ({ ...c, [matchId]: "loading" }));
+    try {
+      const res = await fetch(
+        `/api/riot/participant-ranks?platform=${searchedPlatform}&puuids=${puuids.join(",")}`
+      );
+      const json = await res.json();
+      if (!res.ok) {
+        setRankCache((c) => ({ ...c, [matchId]: "error" }));
+        return;
+      }
+      setRankCache((c) => ({ ...c, [matchId]: json.ranks }));
+    } catch {
+      setRankCache((c) => ({ ...c, [matchId]: "error" }));
     }
   }
 
@@ -1731,9 +1765,17 @@ export default function SummonerSearch({
                 >
                   <button
                     type="button"
-                    onClick={() =>
-                      setExpandedMatchId(isExpanded ? null : m.matchId)
-                    }
+                    onClick={() => {
+                      if (isExpanded) {
+                        setExpandedMatchId(null);
+                      } else {
+                        setExpandedMatchId(m.matchId);
+                        loadParticipantRanks(
+                          m.matchId,
+                          m.participants.map((p) => p.puuid)
+                        );
+                      }
+                    }}
                     className="flex w-full flex-col gap-2 p-3 text-left transition-colors hover:bg-white/5 sm:flex-row sm:items-center sm:gap-4"
                   >
                     <div className="flex items-center gap-3 sm:contents">
@@ -1847,6 +1889,14 @@ export default function SummonerSearch({
                       }
                       buildState={buildCache[m.matchId]}
                       onRequestBuild={() => loadBuild(m.matchId)}
+                      ranks={
+                        typeof rankCache[m.matchId] === "object"
+                          ? (rankCache[m.matchId] as Record<
+                              string,
+                              ParticipantRank
+                            >)
+                          : undefined
+                      }
                     />
                   )}
                 </div>

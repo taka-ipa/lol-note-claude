@@ -21,6 +21,7 @@ export type HistoryParticipant = {
   riotIdGameName: string;
   riotIdTagline: string;
   teamId: number;
+  summonerLevel: number;
   win: boolean;
   championId: number;
   championName: string;
@@ -136,6 +137,7 @@ export async function GET(req: NextRequest) {
               riotIdGameName: p.riotIdGameName || p.summonerName || "?",
               riotIdTagline: p.riotIdTagline || "",
               teamId: p.teamId,
+              summonerLevel: p.summonerLevel,
               win: p.win,
               championId: p.championId,
               championName: p.championName,
