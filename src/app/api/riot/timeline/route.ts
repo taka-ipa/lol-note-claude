@@ -4,6 +4,7 @@ import {
   RiotApiError,
   type Platform,
 } from "@/lib/riot";
+import { checkRateLimit, getClientIp } from "@/lib/rateLimit";
 
 export type BuildItem = { itemId: number; timestamp: number };
 export type SkillLevelUp = { slot: number; timestamp: number };
@@ -16,6 +17,18 @@ export type ParticipantBuild = {
 };
 
 export async function GET(req: NextRequest) {
+  const { allowed, retryAfterSeconds } = checkRateLimit(
+    `timeline:${getClientIp(req)}`,
+    15,
+    60_000
+  );
+  if (!allowed) {
+    return NextResponse.json(
+      { error: "アクセスが集中しています。少し時間をおいてから再度お試しください。" },
+      { status: 429, headers: { "Retry-After": String(retryAfterSeconds) } }
+    );
+  }
+
   const { searchParams } = new URL(req.url);
   const platform = searchParams.get("platform") as Platform | null;
   const matchId = searchParams.get("matchId");

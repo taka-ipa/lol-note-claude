@@ -14,6 +14,7 @@ import {
   type LeagueEntry,
   type Platform,
 } from "@/lib/riot";
+import { checkRateLimit, getClientIp } from "@/lib/rateLimit";
 
 export type HistoryParticipant = {
   puuid: string;
@@ -63,11 +64,23 @@ export type HistoryMatch = {
 const LANE_ORDER = ["TOP", "JUNGLE", "MID", "ADC", "SUPPORT"];
 
 export async function GET(req: NextRequest) {
+  const { allowed, retryAfterSeconds } = checkRateLimit(
+    `history:${getClientIp(req)}`,
+    20,
+    60_000
+  );
+  if (!allowed) {
+    return NextResponse.json(
+      { error: "アクセスが集中しています。少し時間をおいてから再度お試しください。" },
+      { status: 429, headers: { "Retry-After": String(retryAfterSeconds) } }
+    );
+  }
+
   const { searchParams } = new URL(req.url);
   const platform = searchParams.get("platform") as Platform | null;
   const gameName = searchParams.get("gameName");
   const tagLine = searchParams.get("tagLine");
-  const count = Number(searchParams.get("count") ?? "20");
+  const count = Math.min(Number(searchParams.get("count") ?? "20"), 50);
   const queueIdParam = searchParams.get("queueId");
   const queueId = queueIdParam ? Number(queueIdParam) : undefined;
 
