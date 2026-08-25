@@ -269,12 +269,17 @@ function RecentChampionBreakdown({
   }
   return (
     <div className="flex flex-nowrap gap-x-5">
-      {top.map((c) => {
+      {top.map((c, i) => {
         const champ = champIcon(championMap, c.championName);
         const playRate =
           totalGames > 0 ? Math.round((c.games / totalGames) * 100) : 0;
         return (
-          <div key={c.championName} className="flex shrink-0 items-center gap-2">
+          <div
+            key={c.championName}
+            className={`flex shrink-0 items-center gap-2 ${
+              i === 2 ? "hidden sm:flex" : ""
+            }`}
+          >
             {champ ? (
               <Image
                 src={champ.iconUrl}
