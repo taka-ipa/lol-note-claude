@@ -77,7 +77,7 @@ export default function RiotIdInput({
         className={className}
       />
       {suggestions.length > 0 && (
-        <ul className="absolute left-0 right-0 top-full z-10 mt-2 overflow-hidden rounded-lg border border-neutral-700 bg-neutral-900 text-left shadow-xl">
+        <ul className="absolute left-0 right-0 top-full z-10 mt-2 overflow-hidden rounded-lg border border-neutral-600 bg-neutral-800 text-left shadow-xl">
           {suggestions.map((s, i) => (
             <li key={i}>
               <button
@@ -86,7 +86,7 @@ export default function RiotIdInput({
                   e.preventDefault();
                   onSelectSuggestion(s);
                 }}
-                className="flex w-full items-center justify-between px-4 py-2 text-sm text-neutral-200 transition-colors hover:bg-neutral-800"
+                className="flex w-full items-center justify-between px-4 py-2 text-sm text-neutral-200 transition-colors hover:bg-neutral-700"
               >
                 <span>
                   {s.gameName}

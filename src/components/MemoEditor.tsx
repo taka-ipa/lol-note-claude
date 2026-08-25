@@ -43,7 +43,7 @@ export default function MemoEditor({
         onChange={(e) => setMemo(e.target.value)}
         rows={16}
         placeholder="レベル帯ごとの立ち回り、警戒すべきスキル、勝ち筋などを書く..."
-        className="w-full rounded-xl border border-neutral-700 bg-neutral-900 p-4 text-sm leading-relaxed text-white placeholder-neutral-600 shadow-sm transition-colors focus:border-sky-500 focus:outline-none focus:ring-2 focus:ring-sky-500/20"
+        className="w-full rounded-xl border border-neutral-600 bg-neutral-800 p-4 text-sm leading-relaxed text-white placeholder-neutral-600 shadow-sm transition-colors focus:border-sky-500 focus:outline-none focus:ring-2 focus:ring-sky-500/20"
       />
       <div className="mt-3 flex items-center gap-3">
         <button

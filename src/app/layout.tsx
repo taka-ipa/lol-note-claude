@@ -31,8 +31,8 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       lang="ja"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col bg-neutral-950 text-neutral-100">
-        <header className="sticky top-0 z-20 border-b border-neutral-800 bg-neutral-900/80 backdrop-blur">
+      <body className="min-h-full flex flex-col bg-neutral-900 text-neutral-100">
+        <header className="sticky top-0 z-20 border-b border-neutral-700 bg-neutral-800/80 backdrop-blur">
           <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-x-6 gap-y-2 px-4 py-3">
             <Link
               href="/"
@@ -49,7 +49,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-6">
           {children}
         </main>
-        <footer className="border-t border-neutral-800 px-4 py-4 text-center text-xs leading-relaxed text-neutral-600">
+        <footer className="border-t border-neutral-700 px-4 py-4 text-center text-xs leading-relaxed text-neutral-600">
           <p>
             LoL Matchup Note isn&apos;t endorsed by Riot Games and doesn&apos;t
             reflect the views or opinions of Riot Games or anyone officially

@@ -54,7 +54,7 @@ export default async function ChampionDetailPage({
           width={72}
           height={72}
           unoptimized
-          className="rounded-lg border border-neutral-700 shadow-lg"
+          className="rounded-lg border border-neutral-600 shadow-lg"
         />
         <div>
           <h1 className="text-2xl font-bold text-white">{champion.nameJa}</h1>
@@ -62,7 +62,7 @@ export default async function ChampionDetailPage({
         </div>
       </div>
 
-      <div className="mb-8 rounded-xl border border-neutral-800 bg-neutral-900 p-5 shadow-sm">
+      <div className="mb-8 rounded-xl border border-neutral-700 bg-neutral-800 p-5 shadow-sm">
         <h2 className="mb-3 text-sm font-semibold text-neutral-200">
           マッチアップを追加
         </h2>
@@ -93,7 +93,7 @@ export default async function ChampionDetailPage({
                   <Link
                     key={m.id}
                     href={`/matchup/${champion.id}/${m.lane}/${m.opponentChampionId}`}
-                    className="group flex items-center gap-3 rounded-lg border border-neutral-800 bg-neutral-900 p-3 transition-colors hover:border-sky-500 hover:bg-neutral-800/60"
+                    className="group flex items-center gap-3 rounded-lg border border-neutral-700 bg-neutral-800 p-3 transition-colors hover:border-sky-500 hover:bg-neutral-700/60"
                   >
                     <Image
                       src={m.opponentChampion.iconUrl}
@@ -101,7 +101,7 @@ export default async function ChampionDetailPage({
                       width={40}
                       height={40}
                       unoptimized
-                      className="shrink-0 rounded-md border border-neutral-700"
+                      className="shrink-0 rounded-md border border-neutral-600"
                     />
                     <div className="min-w-0 flex-1">
                       <p className="text-sm font-medium text-white">
@@ -121,7 +121,7 @@ export default async function ChampionDetailPage({
           )
         )}
         {userId && memos.length === 0 && (
-          <p className="rounded-lg border border-dashed border-neutral-800 p-6 text-center text-sm text-neutral-500">
+          <p className="rounded-lg border border-dashed border-neutral-700 p-6 text-center text-sm text-neutral-500">
             まだマッチアップメモがありません。上のフォームから追加してください。
           </p>
         )}

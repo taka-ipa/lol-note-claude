@@ -33,7 +33,7 @@ export default async function AuthStatus() {
       >
         <button
           type="submit"
-          className="rounded-lg border border-neutral-700 px-2.5 py-1.5 text-xs font-medium text-neutral-300 transition-colors hover:bg-neutral-800 hover:text-white"
+          className="rounded-lg border border-neutral-600 px-2.5 py-1.5 text-xs font-medium text-neutral-300 transition-colors hover:bg-neutral-700 hover:text-white"
         >
           ログアウト
         </button>

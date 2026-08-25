@@ -61,7 +61,7 @@ export default async function MatchupPage({
             <Link href={returnTo} className="transition-colors hover:text-white">
               ← サモナー戦績に戻る
             </Link>
-            <span className="text-neutral-700">·</span>
+            <span className="text-neutral-600">·</span>
           </>
         )}
         <Link
@@ -72,7 +72,7 @@ export default async function MatchupPage({
         </Link>
       </div>
 
-      <div className="mb-6 flex flex-wrap items-center gap-4 rounded-xl border border-neutral-800 bg-neutral-900 p-5 shadow-sm">
+      <div className="mb-6 flex flex-wrap items-center gap-4 rounded-xl border border-neutral-700 bg-neutral-800 p-5 shadow-sm">
         <div className="flex shrink-0 items-center gap-3">
           <Image
             src={myChampion.iconUrl}
@@ -80,9 +80,9 @@ export default async function MatchupPage({
             width={64}
             height={64}
             unoptimized
-            className="rounded-lg border border-neutral-700 shadow-md"
+            className="rounded-lg border border-neutral-600 shadow-md"
           />
-          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-neutral-800 text-[11px] font-bold text-neutral-400">
+          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-neutral-700 text-[11px] font-bold text-neutral-400">
             VS
           </span>
           <Image
@@ -91,7 +91,7 @@ export default async function MatchupPage({
             width={64}
             height={64}
             unoptimized
-            className="rounded-lg border border-neutral-700 shadow-md"
+            className="rounded-lg border border-neutral-600 shadow-md"
           />
         </div>
         <div>
@@ -114,7 +114,7 @@ export default async function MatchupPage({
           initialMemo={memo?.memo ?? ""}
         />
       ) : (
-        <div className="flex flex-col items-center gap-3 rounded-xl border border-neutral-800 bg-neutral-900 p-8 text-center shadow-sm">
+        <div className="flex flex-col items-center gap-3 rounded-xl border border-neutral-700 bg-neutral-800 p-8 text-center shadow-sm">
           <p className="text-sm text-neutral-400">
             マッチアップメモを書く・見るにはログインしてください。
           </p>
