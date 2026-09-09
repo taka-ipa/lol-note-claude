@@ -5,6 +5,10 @@ import {
   type Platform,
 } from "@/lib/riot";
 import { checkRateLimit, getClientIp } from "@/lib/rateLimit";
+import { getCached, setCached } from "@/lib/apiCache";
+
+// 完了した試合のタイムラインは内容が変わらないため、長めにキャッシュする。
+const TIMELINE_CACHE_TTL_SECONDS = 7 * 24 * 60 * 60;
 
 export type BuildItem = { itemId: number; timestamp: number };
 export type SkillLevelUp = { slot: number; timestamp: number };
@@ -38,6 +42,12 @@ export async function GET(req: NextRequest) {
       { error: "platform, matchId は必須です" },
       { status: 400 }
     );
+  }
+
+  const cacheKey = `timeline:${platform}:${matchId}`;
+  const cached = await getCached(cacheKey).catch(() => null);
+  if (cached) {
+    return NextResponse.json(cached);
   }
 
   try {
@@ -85,7 +95,9 @@ export async function GET(req: NextRequest) {
       skills: skills.get(i + 1) ?? [],
     }));
 
-    return NextResponse.json({ participants });
+    const body = { participants };
+    await setCached(cacheKey, body, TIMELINE_CACHE_TTL_SECONDS).catch(() => {});
+    return NextResponse.json(body);
   } catch (err) {
     if (err instanceof RiotApiError) {
       return NextResponse.json({ error: err.message }, { status: err.status });

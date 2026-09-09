@@ -15,6 +15,9 @@ import {
   type Platform,
 } from "@/lib/riot";
 import { checkRateLimit, getClientIp } from "@/lib/rateLimit";
+import { getCached, setCached } from "@/lib/apiCache";
+
+const HISTORY_CACHE_TTL_SECONDS = 5 * 60;
 
 export type HistoryParticipant = {
   puuid: string;
@@ -89,6 +92,12 @@ export async function GET(req: NextRequest) {
       { error: "platform, gameName, tagLine は必須です" },
       { status: 400 }
     );
+  }
+
+  const cacheKey = `history:${platform}:${gameName.toLowerCase()}:${tagLine.toLowerCase()}:${count}:${queueId ?? "all"}`;
+  const cached = await getCached(cacheKey).catch(() => null);
+  if (cached) {
+    return NextResponse.json(cached);
   }
 
   try {
@@ -204,7 +213,7 @@ export async function GET(req: NextRequest) {
       }
     );
 
-    return NextResponse.json({
+    const body = {
       account,
       summoner,
       rankedEntries,
@@ -214,7 +223,9 @@ export async function GET(req: NextRequest) {
       styleIcons: runeIcons.styleIcons,
       runeTrees: runeIcons.trees,
       matches: matches.filter((m): m is HistoryMatch => m !== null),
-    });
+    };
+    await setCached(cacheKey, body, HISTORY_CACHE_TTL_SECONDS).catch(() => {});
+    return NextResponse.json(body);
   } catch (err) {
     if (err instanceof RiotApiError) {
       return NextResponse.json({ error: err.message }, { status: err.status });

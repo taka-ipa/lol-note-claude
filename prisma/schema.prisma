@@ -118,3 +118,13 @@ model VerificationToken {
 
   @@unique([identifier, token])
 }
+
+// Riot APIレスポンスの短期キャッシュ。同じ検索が短時間に繰り返されても
+// Riot APIへ問い合わせず、共有しているレート制限枠を無駄に消費しないようにする。
+model RiotApiCache {
+  key       String   @id
+  payload   Json
+  expiresAt DateTime
+
+  @@index([expiresAt])
+}
