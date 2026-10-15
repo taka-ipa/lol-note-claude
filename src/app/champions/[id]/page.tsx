@@ -111,7 +111,7 @@ export default async function ChampionDetailPage({
                         {m.memo || "(メモ未記入)"}
                       </p>
                     </div>
-                    <span className="mr-5 shrink-0 text-neutral-600 transition-transform group-hover:translate-x-0.5 group-hover:text-neutral-400">
+                    <span className="shrink-0 text-neutral-600 transition-transform group-hover:translate-x-0.5 group-hover:text-neutral-400">
                       →
                     </span>
                   </Link>

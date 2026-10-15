@@ -73,17 +73,31 @@ export default function NewMatchupForm({
     >
       <div>
         <label className="mb-1 block text-xs text-neutral-400">レーン</label>
-        <select
-          value={lane}
-          onChange={(e) => setLane(e.target.value as (typeof LANES)[number])}
-          className="rounded-lg border border-neutral-600 bg-neutral-900 px-3 py-2 text-sm text-white transition-colors focus:border-sky-500 focus:outline-none focus:ring-2 focus:ring-sky-500/20"
-        >
-          {LANES.map((l) => (
-            <option key={l} value={l}>
-              {LANE_LABELS[l]}
-            </option>
-          ))}
-        </select>
+        <div className="relative">
+          <select
+            value={lane}
+            onChange={(e) => setLane(e.target.value as (typeof LANES)[number])}
+            className="appearance-none rounded-lg border border-neutral-600 bg-neutral-900 py-2 pl-3 pr-9 text-sm text-white transition-colors focus:border-sky-500 focus:outline-none focus:ring-2 focus:ring-sky-500/20"
+          >
+            {LANES.map((l) => (
+              <option key={l} value={l}>
+                {LANE_LABELS[l]}
+              </option>
+            ))}
+          </select>
+          <svg
+            viewBox="0 0 20 20"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.8"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            aria-hidden="true"
+            className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-neutral-400"
+          >
+            <path d="M5 8l5 5 5-5" />
+          </svg>
+        </div>
       </div>
       <div className="relative">
         <label className="mb-1 block text-xs text-neutral-400">
