@@ -25,7 +25,20 @@ export function ContactSection() {
       <p>
         本サービスに関するお問い合わせ、保存された情報の確認・削除のご依頼は、次の窓口までご連絡ください。
       </p>
-      <p className="text-neutral-200">{CONTACT_INFO ?? "(準備中)"}</p>
+      <p className="text-neutral-200">
+        {CONTACT_INFO ? (
+          <a
+            href={CONTACT_INFO.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-sky-400 underline-offset-2 hover:underline"
+          >
+            {CONTACT_INFO.label}
+          </a>
+        ) : (
+          "(準備中)"
+        )}
+      </p>
     </LegalSection>
   );
 }
