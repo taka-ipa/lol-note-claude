@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { checkRateLimit, getClientIp } from "@/lib/rateLimit";
+import { enforceRateLimit } from "@/lib/rateLimit";
 
 export type ChampionListItem = {
   id: string;
@@ -23,17 +23,8 @@ function parseTags(raw: string): string[] {
 // チャンピオン一覧(ログイン不要)。Webのチャンプ検索と同じデータを、
 // スマホアプリなどWeb画面以外からも取得できるようにするためのAPI。
 export async function GET(req: NextRequest) {
-  const { allowed, retryAfterSeconds } = checkRateLimit(
-    `champions:${getClientIp(req)}`,
-    30,
-    60_000
-  );
-  if (!allowed) {
-    return NextResponse.json(
-      { error: "アクセスが集中しています。少し時間をおいてから再度お試しください。" },
-      { status: 429, headers: { "Retry-After": String(retryAfterSeconds) } }
-    );
-  }
+  const limited = enforceRateLimit(req, "champions", 30);
+  if (limited) return limited;
 
   try {
     const rows = await prisma.champion.findMany({

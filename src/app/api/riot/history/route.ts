@@ -14,7 +14,7 @@ import {
   type LeagueEntry,
   type Platform,
 } from "@/lib/riot";
-import { checkRateLimit, getClientIp } from "@/lib/rateLimit";
+import { enforceRateLimit } from "@/lib/rateLimit";
 import { getCached, setCached } from "@/lib/apiCache";
 
 const HISTORY_CACHE_TTL_SECONDS = 5 * 60;
@@ -67,17 +67,8 @@ export type HistoryMatch = {
 const LANE_ORDER = ["TOP", "JUNGLE", "MID", "ADC", "SUPPORT"];
 
 export async function GET(req: NextRequest) {
-  const { allowed, retryAfterSeconds } = checkRateLimit(
-    `history:${getClientIp(req)}`,
-    20,
-    60_000
-  );
-  if (!allowed) {
-    return NextResponse.json(
-      { error: "アクセスが集中しています。少し時間をおいてから再度お試しください。" },
-      { status: 429, headers: { "Retry-After": String(retryAfterSeconds) } }
-    );
-  }
+  const limited = enforceRateLimit(req, "history", 20);
+  if (limited) return limited;
 
   const { searchParams } = new URL(req.url);
   const platform = searchParams.get("platform") as Platform | null;

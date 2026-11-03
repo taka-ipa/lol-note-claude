@@ -1,4 +1,4 @@
-import type { NextRequest } from "next/server";
+import { NextResponse, type NextRequest } from "next/server";
 
 // In-memory, per-serverless-instance rate limiter. Not perfectly accurate
 // across distributed instances, but it's enough to stop a single script or
@@ -40,4 +40,24 @@ export function checkRateLimit(
   }
   bucket.count += 1;
   return { allowed: true, retryAfterSeconds: 0 };
+}
+
+// APIルートの先頭で呼ぶ共通ヘルパー。制限を超えていれば429のレスポンスを返し、
+// 問題なければnullを返す。(例: `const limited = enforceRateLimit(req, "history", 20); if (limited) return limited;`)
+export function enforceRateLimit(
+  req: NextRequest,
+  name: string,
+  limit: number,
+  windowMs = 60_000
+): NextResponse | null {
+  const { allowed, retryAfterSeconds } = checkRateLimit(
+    `${name}:${getClientIp(req)}`,
+    limit,
+    windowMs
+  );
+  if (allowed) return null;
+  return NextResponse.json(
+    { error: "アクセスが集中しています。少し時間をおいてから再度お試しください。" },
+    { status: 429, headers: { "Retry-After": String(retryAfterSeconds) } }
+  );
 }
