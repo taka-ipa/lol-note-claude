@@ -62,6 +62,14 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
             Gamesの公認・提携を受けたものではなく、Riot
             Gamesの見解を反映するものではありません。
           </p>
+          <p className="mt-2 space-x-4">
+            <Link href="/terms" className="underline-offset-2 hover:text-neutral-300 hover:underline">
+              利用規約
+            </Link>
+            <Link href="/privacy" className="underline-offset-2 hover:text-neutral-300 hover:underline">
+              プライバシーポリシー
+            </Link>
+          </p>
         </footer>
       </body>
     </html>
